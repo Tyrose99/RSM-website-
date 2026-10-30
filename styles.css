@@ -61,6 +61,7 @@ a { color: inherit; text-decoration: none; }
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-variation-settings: "wdth" 125; letter-spacing: .02em; font-size: 18px; }
 .brand img { border-radius: 50%; }
+.brand img.brand-word { border-radius: 0; height: 20px; width: auto; }
 .links { display: flex; gap: clamp(16px, 3vw, 36px); font-size: 13px; text-transform: uppercase; letter-spacing: .18em; color: var(--muted); }
 .links a { transition: color .2s; }
 .links a:hover { color: var(--ink); }
