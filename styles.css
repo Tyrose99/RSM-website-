@@ -127,6 +127,11 @@ main, .foot { position: relative; z-index: 2; }
   margin: 10px 0 14px;
   text-shadow: 0 8px 60px rgba(0,0,0,.8);
 }
+.hero-title img {
+  width: clamp(220px, 40vw, 600px);
+  margin: 0 auto;
+  filter: drop-shadow(0 8px 40px rgba(0,0,0,.8));
+}
 .hero-tag {
   font-size: clamp(13px, 1.4vw, 16px);
   text-transform: uppercase;
