@@ -191,20 +191,44 @@ main, .foot { position: relative; z-index: 2; }
 .services h3::before { content: ""; display: inline-block; width: 8px; height: 8px; background: var(--red); transform: rotate(45deg); margin-right: 12px; vertical-align: 2px; }
 .services p { color: var(--muted); font-size: 15px; max-width: 36ch; }
 
-.roster {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 440px));
-  justify-content: center;
-  gap: clamp(24px, 5vw, 80px);
-  margin-top: 110px;
-  perspective: 1200px;
+/* Client orbit carousel (clients come from /clients.js) */
+.orbit {
+  --orbit-w: 340px;
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: 70px;
+  height: calc(var(--orbit-w) * 1.25 + 130px + 80px);
+  padding-top: 40px;
+  overflow: hidden; /* side cards never widen the page */
+  perspective: 1400px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
 }
-.card { transform-style: preserve-3d; will-change: transform; }
-.card:nth-child(2) { margin-top: 90px; }
-.card img {
+.orbit.is-dragging { cursor: grabbing; }
+.orbit-ring { position: absolute; inset: 40px 0 0; transform-style: preserve-3d; }
+.orbit-card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--orbit-w);
+  margin-left: calc(var(--orbit-w) / -2);
+  transform-origin: 50% 40%;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+.orbit-photo { position: relative; }
+.orbit-photo img {
+  width: 100%;
   border: 1px solid rgba(255,255,255,.08);
   box-shadow: 0 30px 80px -20px rgba(0,0,0,.9), 0 0 70px -10px rgba(227, 18, 27, .35);
+  -webkit-user-drag: none;
 }
+.orbit-shade { position: absolute; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; }
+.orbit-ig { display: inline-block; margin-top: 6px; font-size: 13px; letter-spacing: .04em; color: var(--red); }
+.orbit-ig:hover { color: var(--ink); }
 .card-meta { padding-top: 18px; }
 .card-meta h3 { font-size: 24px; font-weight: 900; font-variation-settings: "wdth" 120; text-transform: uppercase; line-height: 1.1; margin: 8px 0 4px; }
 .card-meta p { color: var(--muted); font-size: 14px; }
@@ -283,8 +307,7 @@ main, .foot { position: relative; z-index: 2; }
   .panel-head { margin-bottom: 40px; }
   .services { grid-template-columns: 1fr; }
   .services li, .services li + li { padding: 22px 0; border-left: 0; }
-  .roster { grid-template-columns: 1fr; margin-top: 64px; }
-  .card:nth-child(2) { margin-top: 0; }
+  .orbit { --orbit-w: min(72vw, 270px); margin-top: 24px; }
   .levels { margin-top: 56px; }
   .finale .btn { width: 100%; max-width: 360px; }
   .finale-logo { margin: -4vh 0 -7vh; }

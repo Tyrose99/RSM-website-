@@ -65,23 +65,9 @@
         <li><h3>Grow your name</h3><p>Graphics, announcements and a consistent look that turns followers into fans.</p></li>
       </ul>
 
-      <div class="roster">
-        <article class="card reveal" data-tilt>
-          <img src="/assets/img/chris-brown.webp" alt="Chris Brown, wide receiver number 1 at Moravian University, Signed graphic" width="1100" height="1375" loading="lazy">
-          <div class="card-meta">
-            <span class="tag">Football</span>
-            <h3>Chris Brown</h3>
-            <p>WR #1 · Moravian University</p>
-          </div>
-        </article>
-        <article class="card reveal" data-tilt>
-          <img src="/assets/img/moe-masoud.webp" alt="Mohammed Masoud, Jordan national team basketball graphic" width="1100" height="1375" loading="lazy">
-          <div class="card-meta">
-            <span class="tag">Basketball</span>
-            <h3>Mohammed Masoud</h3>
-            <p>Jordan National Team</p>
-          </div>
-        </article>
+      <!-- Client orbit: built from the list in /clients.js -->
+      <div class="orbit reveal" id="orbit" role="region" aria-roledescription="carousel" aria-label="RSM athletes">
+        <div class="orbit-ring" id="orbitRing"></div>
       </div>
     </section>
 
@@ -132,6 +118,8 @@
     <a href="https://instagram.com/rsm.collective" target="_blank" rel="noopener">Instagram</a>
   </footer>
 
+  <script src="/clients.js" defer></script>
+  <script src="/orbit.js" defer></script>
   <script src="/script.js" defer></script>
 </body>
 </html>
