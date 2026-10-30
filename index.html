@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RSM | Rose Sports Marketing</title>
+  <meta name="description" content="Rose Sports Marketing is a South Florida sports marketing agency. We handle highlight films, athlete content, NIL deals and brand partnerships, and marketing for local businesses. More than a game.">
+  <meta name="theme-color" content="#070707">
+  <meta property="og:title" content="RSM | Rose Sports Marketing">
+  <meta property="og:description" content="Athlete content, NIL deals and brand partnerships. More than a game.">
+  <meta property="og:image" content="/assets/img/og.jpg">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="/assets/frames/f_001.webp">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Fixed scroll-driven rose animation that sits behind every section -->
+  <div class="stage" aria-hidden="true">
+    <canvas id="rose"></canvas>
+    <div class="vignette"></div>
+  </div>
+
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="RSM home">
+      <img src="/assets/img/logo-circle-96.png" alt="" width="36" height="36">
+      <span>RSM</span>
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#athletes">Athletes</a>
+      <a href="#business">Businesses</a>
+      <a href="#nil">NIL</a>
+    </nav>
+    <a class="btn btn-sm" href="https://instagram.com/rsm.collective" target="_blank" rel="noopener">DM Us</a>
+  </header>
+
+  <main id="top">
+    <!-- 1. HERO: rose spins, then breaks into shards as you scroll -->
+    <section class="hero" id="hero">
+      <div class="hero-sticky">
+        <div class="hero-copy" id="heroCopy">
+          <p class="eyebrow">Rose Sports Marketing Agency</p>
+          <h1 class="hero-title">RSM</h1>
+          <p class="hero-tag">More Than A Game</p>
+        </div>
+        <div class="scroll-cue" id="scrollCue"><span></span>Scroll</div>
+      </div>
+    </section>
+
+    <!-- 2. ATHLETES -->
+    <section class="panel" id="athletes">
+      <div class="panel-head reveal">
+        <p class="eyebrow">01 / Athletes</p>
+        <h2 class="big">Get <em>Seen.</em></h2>
+        <p class="lede">From youth and high school through college and pro, we build the content and the following that gets you noticed by coaches, fans and brands.</p>
+      </div>
+
+      <ul class="services reveal">
+        <li><h3>Recruitment highlight films</h3><p>Film cut to show coaches what you do best, in the first ten seconds.</p></li>
+        <li><h3>Content management</h3><p>Edited reels from your clips, monthly shot lists and a posting strategy built around your season.</p></li>
+        <li><h3>Grow your name</h3><p>Graphics, announcements and a consistent look that turns followers into fans.</p></li>
+      </ul>
+
+      <div class="roster">
+        <article class="card reveal" data-tilt>
+          <img src="/assets/img/chris-brown.webp" alt="Chris Brown, wide receiver number 1 at Moravian University, Signed graphic" width="1100" height="1375" loading="lazy">
+          <div class="card-meta">
+            <span class="tag">Football</span>
+            <h3>Chris Brown</h3>
+            <p>WR #1 · Moravian University</p>
+          </div>
+        </article>
+        <article class="card reveal" data-tilt>
+          <img src="/assets/img/moe-masoud.webp" alt="Mohammed Masoud, Jordan national team basketball graphic" width="1100" height="1375" loading="lazy">
+          <div class="card-meta">
+            <span class="tag">Basketball</span>
+            <h3>Mohammed Masoud</h3>
+            <p>Jordan National Team</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 3. BUSINESSES -->
+    <section class="panel" id="business">
+      <div class="panel-head reveal">
+        <p class="eyebrow">02 / Businesses</p>
+        <h2 class="big">Get <em>Known.</em></h2>
+        <p class="lede">We connect local businesses with athletes their community already follows, and we make the content that brings people through the door.</p>
+      </div>
+      <ul class="services reveal">
+        <li><h3>Athlete partnerships</h3><p>Match your brand with the right athletes for promos, appearances and collabs.</p></li>
+        <li><h3>Content &amp; social</h3><p>Promo videos, reels and graphics built for Instagram and TikTok.</p></li>
+        <li><h3>Signature collabs</h3><p>Signature menu items, products and events named after the athletes your customers love.</p></li>
+      </ul>
+    </section>
+
+    <!-- 4. NIL -->
+    <section class="panel" id="nil">
+      <div class="panel-head reveal">
+        <p class="eyebrow">03 / NIL</p>
+        <h2 class="big">Get <em>Paid.</em></h2>
+        <p class="lede">Your name, image and likeness have value. We find the deals, pitch the brands and handle the partnership so you can focus on the game.</p>
+      </div>
+      <ul class="services reveal">
+        <li><h3>NIL deals</h3><p>We source and pitch brand deals that fit who you are and where you play.</p></li>
+        <li><h3>Brand partnerships</h3><p>Long-term relationships with businesses, not one-off posts.</p></li>
+        <li><h3>Build your brand</h3><p>The content and presence that make brands want to work with you.</p></li>
+      </ul>
+      <p class="levels reveal">Youth <i></i> High School <i></i> College <i></i> Pro <i></i> Local Business</p>
+    </section>
+
+    <!-- 5. FINALE: shards fly back together into the logo -->
+    <section class="finale" id="finale">
+      <div class="finale-sticky">
+        <div class="finale-copy" id="finaleCopy">
+          <img class="finale-logo" src="/assets/img/logo-full.webp" alt="RSM, Rose Sports Marketing Agency, More Than A Game" width="1400" height="1400" loading="lazy">
+          <a class="btn" href="https://instagram.com/rsm.collective" target="_blank" rel="noopener">DM Us on Instagram</a>
+          <p class="fine">@rsm.collective · Pricing sent via DM</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>© <span id="yr"></span> Rose Sports Marketing</span>
+    <span>South Florida</span>
+    <a href="https://instagram.com/rsm.collective" target="_blank" rel="noopener">Instagram</a>
+  </footer>
+
+  <script src="/script.js" defer></script>
+</body>
+</html>
