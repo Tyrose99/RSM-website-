@@ -1,7 +1,7 @@
 (() => {
   const FRAME_COUNT = 97;
   const framePath = (i) => `/assets/frames/f_${String(i + 1).padStart(3, "0")}.webp`;
-  const SRC_W = 1280, SRC_H = 720;
+  const SRC_W = 1920, SRC_H = 1080;
 
   const canvas = document.getElementById("rose");
   const ctx = canvas.getContext("2d");
