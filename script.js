@@ -66,7 +66,7 @@
     const fadeY = h * 0.2, fadeX = w * 0.14;
     const edge = (x0, y0, x1, y1, rx, ry, rw, rh) => {
       const g = ctx.createLinearGradient(x0, y0, x1, y1);
-      g.addColorStop(0, BG); g.addColorStop(1, "rgba(7,7,7,0)");
+      g.addColorStop(0, BG); g.addColorStop(1, "rgba(11,11,11,0)");
       ctx.fillStyle = g; ctx.fillRect(rx, ry, rw, rh);
     };
     edge(0, y, 0, y + fadeY, 0, y - 2, vw, fadeY + 2);
@@ -76,7 +76,7 @@
     ctx.fillStyle = BG;
     if (y > 0) { ctx.fillRect(0, 0, vw, y); ctx.fillRect(0, y + h, vw, vh - y - h); }
   }
-  const BG = "#070707";
+  const BG = "#0b0b0b";
   let drawPending = false;
   function requestDraw() {
     if (!drawPending) { drawPending = true; requestAnimationFrame(draw); }
