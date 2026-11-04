@@ -29,5 +29,7 @@ window.RSM_CLIENTS = [
     instagram: "",
     sport: "Basketball",
     detail: "Jordan National Team",
+    video: "moe-masoud.mp4",
+    poster: "moe-masoud-poster.webp",
   },
 ];
