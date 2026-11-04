@@ -8,6 +8,8 @@
        - photo:     the file name in /assets/img/
        - instagram: their handle without the @ (leave "" to hide it)
        - sport / detail: optional extra lines (leave "" to hide them)
+       - video (optional): a clip in /assets/video/, e.g. video: "their-name.mp4".
+         It plays inside their card while it's centred and opens bigger (with sound) when tapped.
   That's it. The orbit adjusts to however many clients are listed.
 */
 window.RSM_CLIENTS = [
@@ -17,6 +19,7 @@ window.RSM_CLIENTS = [
     instagram: "",
     sport: "Football",
     detail: "WR #1 · Moravian University",
+    video: "christopher-brown.mp4",
   },
   {
     name: "Mohammed Masoud",

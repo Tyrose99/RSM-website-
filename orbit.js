@@ -3,12 +3,19 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const igLink = (handle, dup) => (handle ? `<a class="orbit-ig" href="https://instagram.com/${encodeURIComponent(handle)}" target="_blank" rel="noopener"${dup ? ' tabindex="-1"' : ""}>@${esc(handle)}</a>` : "");
 
-  // Athlete card: photo with name details underneath
+  // Athlete card: photo with name details underneath.
+  // An athlete with a `video` gets it layered over the photo (plays while centred) and opens it in a popup on tap.
   const athleteCard = (c, dup) => {
     const handle = (c.instagram || "").replace(/^@/, "").trim();
     const alt = [c.name, c.detail].filter(Boolean).join(", ");
+    const img = `<img src="/assets/img/${esc(c.photo)}" alt="${dup ? "" : esc(alt)}" width="1100" height="1375" loading="lazy" decoding="async" draggable="false">`;
+    const photo = c.video
+      ? `<div class="orbit-photo has-video" role="button" tabindex="${dup ? -1 : 0}" aria-label="Play ${esc(c.name)} video" data-video="/assets/video/${esc(c.video)}" data-name="${esc(c.name)}">${img}` +
+        `<video class="card-video" muted loop playsinline webkit-playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>` +
+        `<span class="play-badge" aria-hidden="true"></span><i class="orbit-shade"></i></div>`
+      : `<div class="orbit-photo">${img}<i class="orbit-shade"></i></div>`;
     return (
-      `<div class="orbit-photo"><img src="/assets/img/${esc(c.photo)}" alt="${dup ? "" : esc(alt)}" width="1100" height="1375" loading="lazy" decoding="async" draggable="false"><i class="orbit-shade"></i></div>` +
+      photo +
       `<div class="card-meta">` +
       (c.sport ? `<span class="tag">${esc(c.sport)}</span>` : "") +
       `<h3>${esc(c.name)}</h3>` +
@@ -40,10 +47,101 @@
     );
   };
 
-  createOrbit("orbit", "orbitRing", (window.RSM_CLIENTS || []).filter((c) => c && c.name && c.photo), athleteCard);
+  // ---------- Athlete videos: play in the card while centred, popup with sound on tap ----------
+  function athleteVideos() {
+    const root = document.getElementById("orbit");
+    if (!root) return null;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let onScreen = false, modalOpen = false; // set by the observer below, so nothing downloads before the orbit is near
+
+    const setPlaying = (photo, on) => {
+      const v = photo.querySelector(".card-video");
+      if (on) {
+        if (!v.src) { v.preload = "auto"; v.src = photo.dataset.video; }
+        if (v.paused) v.play().catch(() => {});
+      } else if (!v.paused) {
+        v.pause();
+      }
+      photo.classList.toggle("is-centred", on);
+    };
+    root.addEventListener("playing", (e) => e.target.classList && e.target.classList.contains("card-video") && e.target.closest(".orbit-photo").classList.add("is-playing"), true);
+    root.addEventListener("pause", (e) => e.target.classList && e.target.classList.contains("card-video") && e.target.closest(".orbit-photo").classList.remove("is-playing"), true);
+
+    new IntersectionObserver((entries) => {
+      onScreen = entries[0].isIntersecting;
+      if (!onScreen) root.querySelectorAll(".has-video").forEach((p) => setPlaying(p, false));
+    }).observe(root);
+
+    // ---- popup ----
+    let modal, modalVideo, lastFocus;
+    const close = () => {
+      modal.hidden = true; modalOpen = false;
+      modalVideo.pause();
+      document.documentElement.classList.remove("vmodal-lock");
+      if (lastFocus) lastFocus.focus({ preventScroll: true });
+    };
+    const open = (photo) => {
+      if (!modal) {
+        modal = document.createElement("div");
+        modal.className = "vmodal";
+        modal.hidden = true;
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.innerHTML = `<div class="vmodal-box"><video controls playsinline webkit-playsinline preload="auto"></video><button class="vmodal-close" type="button" aria-label="Close video">&times;</button></div>`;
+        document.body.appendChild(modal);
+        modalVideo = modal.querySelector("video");
+        modal.addEventListener("click", (e) => { if (!e.target.closest("video")) close(); });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalOpen) close(); });
+      }
+      lastFocus = document.activeElement;
+      root.querySelectorAll(".has-video").forEach((p) => setPlaying(p, false));
+      modal.setAttribute("aria-label", `${photo.dataset.name} video`);
+      if (modalVideo.getAttribute("src") !== photo.dataset.video) modalVideo.src = photo.dataset.video;
+      modalVideo.currentTime = 0;
+      modalVideo.muted = false;
+      modal.hidden = false; modalOpen = true;
+      document.documentElement.classList.add("vmodal-lock");
+      modalVideo.play().catch(() => {});
+      modal.querySelector(".vmodal-close").focus({ preventScroll: true });
+    };
+
+    // Which card photo a click is on. Some browsers hit-test clicks on the turning 3D cards
+    // as landing on the ring behind them, so fall back to the front-most card under the pointer.
+    const photoAt = (e) => {
+      if (e.target.closest(".orbit-card")) return e.target.closest(".orbit-photo");
+      let best = null, bestZ = -1;
+      for (const card of root.querySelectorAll(".orbit-card")) {
+        if (card.style.pointerEvents === "none") continue;
+        const photo = card.querySelector(".orbit-photo");
+        const r = photo.getBoundingClientRect();
+        const z = +card.style.zIndex || 0;
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && z > bestZ) { best = photo; bestZ = z; }
+      }
+      return best;
+    };
+    root.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.target.closest("a")) return; // a drag, or the Instagram link
+      const photo = photoAt(e);
+      if (photo && photo.classList.contains("has-video")) open(photo);
+    });
+    root.addEventListener("keydown", (e) => {
+      const photo = e.target.closest && e.target.closest(".has-video");
+      if (photo && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(photo); }
+    });
+
+    // called by the orbit for every card on every frame
+    return (el, t, centred) => {
+      const photo = el.querySelector(".has-video");
+      if (!photo) return;
+      const want = centred && onScreen && !modalOpen && !reduced;
+      if (want !== photo.classList.contains("is-centred")) setPlaying(photo, want);
+    };
+  }
+
+  createOrbit("orbit", "orbitRing", (window.RSM_CLIENTS || []).filter((c) => c && c.name && c.photo), athleteCard, athleteVideos());
   createOrbit("bizOrbit", "bizOrbitRing", (window.RSM_BUSINESSES || []).filter((b) => b && b.name && b.logo), businessCard);
 
-  function createOrbit(rootId, ringId, clients, cardHtml) {
+  function createOrbit(rootId, ringId, clients, cardHtml, onRender) {
   const root = document.getElementById(rootId);
   const ring = document.getElementById(ringId);
   if (!root || !ring || !clients.length) return;
@@ -58,6 +156,7 @@
   for (let r = 0; r < repeats; r++) clients.forEach((c) => slots.push({ c, dup: r > 0 }));
   const N = slots.length;
   const step = (Math.PI * 2) / N;
+  const centreT = (Math.cos(step / 2) + 1) / 2; // a card counts as "centred" while it's the slot nearest the front
 
   const els = slots.map(({ c, dup }) => {
     const el = document.createElement("article");
@@ -95,6 +194,7 @@
       el.style.visibility = vis < 0.01 ? "hidden" : "visible";
       el.style.pointerEvents = t > 0.55 ? "auto" : "none";
       shade.style.opacity = Math.min(0.75, (1 - t) * 1.5).toFixed(3);
+      if (onRender) onRender(el, t, t >= centreT);
     }
   }
 

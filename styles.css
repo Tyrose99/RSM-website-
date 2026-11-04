@@ -229,6 +229,84 @@ main, .foot { position: relative; z-index: 2; }
   -webkit-user-drag: none;
 }
 .orbit-shade { position: absolute; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; }
+
+/* Athlete video: plays over the photo while the card is centred (photo stays as the cover until it's playing) */
+.has-video { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.has-video:focus-visible { outline: 2px solid var(--muted); outline-offset: 4px; }
+.card-video {
+  position: absolute;
+  inset: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity .45s ease;
+  pointer-events: none;
+}
+.has-video.is-centred.is-playing .card-video { opacity: 1; }
+.play-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(11, 11, 11, .55);
+  border: 1px solid rgba(242, 238, 232, .25);
+  -webkit-backdrop-filter: blur(4px);
+          backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+.play-badge::after { /* play triangle */
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent var(--ink);
+}
+
+/* Video popup */
+.vmodal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: rgba(11, 11, 11, .94);
+}
+.vmodal[hidden] { display: none; }
+.vmodal-box { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.vmodal video {
+  display: block;
+  max-width: min(92vw, 520px);
+  max-height: calc(100vh - 110px);
+  max-height: calc(100dvh - 110px); /* leaves room for the close button above */
+  width: auto;
+  height: auto;
+  background: #000;
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.9), 0 0 60px -10px rgba(110, 10, 16, .45);
+}
+.vmodal-close {
+  flex: none;
+  order: -1; /* sits above the video */
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 238, 232, .25);
+  background: rgba(26, 26, 28, .9);
+  color: var(--ink);
+  font: 400 26px/1 var(--wide);
+  cursor: pointer;
+}
+.vmodal-close:hover { background: var(--red-deep); }
+.vmodal-close:focus-visible { outline: 2px solid var(--muted); outline-offset: 3px; }
+html.vmodal-lock, html.vmodal-lock body { overflow: hidden; }
 .orbit-ig { display: inline-block; margin-top: 6px; font-size: 13px; letter-spacing: .04em; color: var(--red); }
 .orbit-ig:hover { color: var(--ink); }
 
