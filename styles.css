@@ -261,6 +261,32 @@ main, .foot { position: relative; z-index: 2; }
 .poster-foot { padding: 0 8% 9%; text-align: center; }
 .poster-foot h3 { font-size: 24px; font-weight: 900; font-variation-settings: "wdth" 120; text-transform: uppercase; line-height: 1.1; }
 .poster-foot p { margin-top: 6px; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--muted); }
+
+/* Flip card (business with a video): poster on the front, video on the back */
+.flip { position: relative; aspect-ratio: 4 / 5; perspective: 1200px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.flip:focus-visible { outline: 2px solid var(--muted); outline-offset: 4px; }
+.flip-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.flip.is-flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-back {
+  transform: rotateY(180deg);
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(242, 238, 232, .08);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.9), 0 0 60px -10px rgba(110, 10, 16, .45);
+}
+.flip-back video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.flip > .orbit-shade { z-index: 2; }
+.flip-hint {
+  position: absolute;
+  top: 14px; left: 0; right: 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--muted); /* Steel #8A8587 */
+  pointer-events: none;
+}
 .card-meta { padding-top: 18px; }
 .card-meta h3 { font-size: 24px; font-weight: 900; font-variation-settings: "wdth" 120; text-transform: uppercase; line-height: 1.1; margin: 8px 0 4px; }
 .card-meta p { color: var(--muted); font-size: 14px; }
@@ -349,6 +375,11 @@ main, .foot { position: relative; z-index: 2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .flip-inner, .flip.is-flipped .flip-inner { transform: none; transition: none; }
+  .flip-face { transition: opacity .5s ease; }
+  .flip-back { transform: none; opacity: 0; }
+  .flip.is-flipped .flip-back { opacity: 1; }
+  .flip.is-flipped .flip-front { opacity: 0; }
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
   .scroll-cue span { animation: none; }

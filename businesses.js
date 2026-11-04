@@ -8,6 +8,8 @@
        - logo:      the file name in /assets/img/
        - tag:       short line under the name (leave "" to hide it)
        - instagram: their handle without the @ (leave "" to hide it)
+       - video / poster (optional): a clip in /assets/video/ and a still frame in /assets/img/.
+         Adding these turns the card into a "Tap to flip" card with the video on the back.
   That's it. The orbit adjusts to however many businesses are listed.
 */
 window.RSM_BUSINESSES = [
@@ -22,6 +24,8 @@ window.RSM_BUSINESSES = [
     logo: "kosportstv.webp",
     tag: "Training & Performance",
     instagram: "",
+    video: "ko-sports-clip.mp4",
+    poster: "ko-sports-clip-poster.webp",
   },
   {
     name: "STT",

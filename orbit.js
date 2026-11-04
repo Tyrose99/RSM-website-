@@ -18,15 +18,24 @@
     );
   };
 
-  // Business card: poster with the logo centred, name and tag at the bottom
+  // Business card: poster with the logo centred, name and tag at the bottom.
+  // A business with a `video` becomes a flip card (poster on the front, video on the back; see /flip.js).
   const businessCard = (b, dup) => {
     const handle = (b.instagram || "").replace(/^@/, "").trim();
-    return (
+    const poster = (inner) =>
       `<div class="orbit-photo poster">` +
       `<div class="poster-art"><img src="/assets/img/${esc(b.logo)}" alt="${dup ? "" : esc(b.name + " logo")}" loading="lazy" decoding="async" draggable="false"></div>` +
       `<div class="poster-foot"><h3>${esc(b.name)}</h3>` +
       (b.tag ? `<p>${esc(b.tag)}</p>` : "") +
       igLink(handle, dup) +
+      `</div>${inner}</div>`;
+    if (!b.video) return poster(`<i class="orbit-shade"></i>`);
+    return (
+      `<div class="flip" role="button" tabindex="${dup ? -1 : 0}" aria-pressed="false" aria-label="${esc(b.name)}: flip to watch the video">` +
+      `<div class="flip-inner">` +
+      `<div class="flip-face flip-front">${poster(`<span class="flip-hint">Tap to flip</span>`)}</div>` +
+      `<div class="flip-face flip-back"><video muted loop playsinline preload="none" disablepictureinpicture aria-hidden="true"` +
+      ` data-src="/assets/video/${esc(b.video)}"${b.poster ? ` data-poster="/assets/img/${esc(b.poster)}"` : ""}></video></div>` +
       `</div><i class="orbit-shade"></i></div>`
     );
   };
