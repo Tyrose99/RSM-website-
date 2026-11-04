@@ -8,8 +8,9 @@
        - photo:     the file name in /assets/img/
        - instagram: their handle without the @ (leave "" to hide it)
        - sport / detail: optional extra lines (leave "" to hide them)
-       - video (optional): a clip in /assets/video/, e.g. video: "their-name.mp4".
-         It plays inside their card while it's centred and opens bigger (with sound) when tapped.
+       - video / poster (optional): a clip in /assets/video/ and a still frame in /assets/img/,
+         e.g. video: "their-name.mp4", poster: "their-name-poster.webp".
+         Adding these turns the card into a "Tap to flip" card with the video on the back.
   That's it. The orbit adjusts to however many clients are listed.
 */
 window.RSM_CLIENTS = [
@@ -20,6 +21,7 @@ window.RSM_CLIENTS = [
     sport: "Football",
     detail: "WR #1 · Moravian University",
     video: "christopher-brown.mp4",
+    poster: "christopher-brown-poster.webp",
   },
   {
     name: "Mohammed Masoud",
