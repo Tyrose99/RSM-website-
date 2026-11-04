@@ -1,8 +1,42 @@
-// Orbit carousel for the client list in /clients.js
+// Orbit carousels: athletes (/clients.js) and businesses (/businesses.js) share this one engine
 (() => {
-  const root = document.getElementById("orbit");
-  const ring = document.getElementById("orbitRing");
-  const clients = (window.RSM_CLIENTS || []).filter((c) => c && c.name && c.photo);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  const igLink = (handle, dup) => (handle ? `<a class="orbit-ig" href="https://instagram.com/${encodeURIComponent(handle)}" target="_blank" rel="noopener"${dup ? ' tabindex="-1"' : ""}>@${esc(handle)}</a>` : "");
+
+  // Athlete card: photo with name details underneath
+  const athleteCard = (c, dup) => {
+    const handle = (c.instagram || "").replace(/^@/, "").trim();
+    const alt = [c.name, c.detail].filter(Boolean).join(", ");
+    return (
+      `<div class="orbit-photo"><img src="/assets/img/${esc(c.photo)}" alt="${dup ? "" : esc(alt)}" width="1100" height="1375" loading="lazy" decoding="async" draggable="false"><i class="orbit-shade"></i></div>` +
+      `<div class="card-meta">` +
+      (c.sport ? `<span class="tag">${esc(c.sport)}</span>` : "") +
+      `<h3>${esc(c.name)}</h3>` +
+      (c.detail ? `<p>${esc(c.detail)}</p>` : "") +
+      igLink(handle, dup) +
+      `</div>`
+    );
+  };
+
+  // Business card: poster with the logo centred, name and tag at the bottom
+  const businessCard = (b, dup) => {
+    const handle = (b.instagram || "").replace(/^@/, "").trim();
+    return (
+      `<div class="orbit-photo poster">` +
+      `<div class="poster-art"><img src="/assets/img/${esc(b.logo)}" alt="${dup ? "" : esc(b.name + " logo")}" loading="lazy" decoding="async" draggable="false"></div>` +
+      `<div class="poster-foot"><h3>${esc(b.name)}</h3>` +
+      (b.tag ? `<p>${esc(b.tag)}</p>` : "") +
+      igLink(handle, dup) +
+      `</div><i class="orbit-shade"></i></div>`
+    );
+  };
+
+  createOrbit("orbit", "orbitRing", (window.RSM_CLIENTS || []).filter((c) => c && c.name && c.photo), athleteCard);
+  createOrbit("bizOrbit", "bizOrbitRing", (window.RSM_BUSINESSES || []).filter((b) => b && b.name && b.logo), businessCard);
+
+  function createOrbit(rootId, ringId, clients, cardHtml) {
+  const root = document.getElementById(rootId);
+  const ring = document.getElementById(ringId);
   if (!root || !ring || !clients.length) return;
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -16,21 +50,11 @@
   const N = slots.length;
   const step = (Math.PI * 2) / N;
 
-  const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const els = slots.map(({ c, dup }) => {
     const el = document.createElement("article");
     el.className = "orbit-card";
     if (dup) el.setAttribute("aria-hidden", "true");
-    const handle = (c.instagram || "").replace(/^@/, "").trim();
-    const alt = [c.name, c.detail].filter(Boolean).join(", ");
-    el.innerHTML =
-      `<div class="orbit-photo"><img src="/assets/img/${esc(c.photo)}" alt="${dup ? "" : esc(alt)}" width="1100" height="1375" loading="lazy" decoding="async" draggable="false"><i class="orbit-shade"></i></div>` +
-      `<div class="card-meta">` +
-      (c.sport ? `<span class="tag">${esc(c.sport)}</span>` : "") +
-      `<h3>${esc(c.name)}</h3>` +
-      (c.detail ? `<p>${esc(c.detail)}</p>` : "") +
-      (handle ? `<a class="orbit-ig" href="https://instagram.com/${encodeURIComponent(handle)}" target="_blank" rel="noopener"${dup ? ' tabindex="-1"' : ""}>@${esc(handle)}</a>` : "") +
-      `</div>`;
+    el.innerHTML = cardHtml(c, dup);
     ring.appendChild(el);
     return { el, shade: el.querySelector(".orbit-shade") };
   });
@@ -129,4 +153,5 @@
   measure();
   render();
   start();
+  }
 })();
