@@ -18,6 +18,8 @@ window.RSM_BUSINESSES = [
     logo: "llmd-mobile-detailing.webp",
     tag: "Mobile Detailing",
     instagram: "",
+    video: "llmd-mobile-detailing.mp4",
+    poster: "llmd-mobile-detailing-poster.webp",
   },
   {
     name: "KOSPORTSTV",
