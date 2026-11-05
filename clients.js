@@ -11,6 +11,8 @@
        - video / poster (optional): a clip in /assets/video/ and a still frame in /assets/img/,
          e.g. video: "their-name.mp4", poster: "their-name-poster.webp".
          Adding these turns the card into a "Tap to flip" card with the video on the back.
+       - flipTag (optional): "light" = light tag with black text (for light photos),
+         "dark" = dark tag with white text. Leave it out to pick automatically.
   That's it. The orbit adjusts to however many clients are listed.
 */
 window.RSM_CLIENTS = [
@@ -31,5 +33,6 @@ window.RSM_CLIENTS = [
     detail: "Jordan National Team",
     video: "moe-masoud.mp4",
     poster: "moe-masoud-poster.webp",
+    flipTag: "light",
   },
 ];

@@ -11,6 +11,8 @@
          It shows as a floating Instagram link under their card.
        - video / poster (optional): a clip in /assets/video/ and a still frame in /assets/img/.
          Adding these turns the card into a "Tap to flip" card with the video on the back.
+       - flipTag (optional): "light" = light tag with black text, "dark" = dark tag with white text.
+         Leave it out to pick automatically.
   That's it. The orbit adjusts to however many businesses are listed.
 */
 window.RSM_BUSINESSES = [

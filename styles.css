@@ -315,15 +315,37 @@ main, .foot { position: relative; z-index: 2; }
 .flip--photo { aspect-ratio: auto; }
 .flip--photo .flip-inner { position: relative; inset: auto; }
 .flip--photo .flip-front { position: relative; inset: auto; }
+/* "Tap to flip" tag: small pill with a thin red border and a slow, soft glow.
+   --light (black text on a light pill) for light photos, --dark (white on dark) otherwise. */
 .flip-hint {
   position: absolute;
-  top: 14px; left: 0; right: 0;
-  text-align: center;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(227, 18, 27, .75);
+  background: rgba(11, 11, 11, .6);
+  color: var(--ink);
+  -webkit-backdrop-filter: blur(4px);
+          backdrop-filter: blur(4px);
   font-size: 10px;
-  letter-spacing: .26em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .2em;
   text-transform: uppercase;
-  color: var(--muted); /* Steel #8A8587 */
+  white-space: nowrap;
   pointer-events: none;
+  animation: flip-hint-glow 3.2s ease-in-out infinite;
+}
+.flip-hint svg { flex: none; }
+.flip-hint--light { background: rgba(242, 238, 232, .82); color: var(--bg); }
+.flip-hint--dark { background: rgba(11, 11, 11, .6); color: var(--ink); }
+@keyframes flip-hint-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(227, 18, 27, 0); }
+  50% { box-shadow: 0 0 14px 1px rgba(227, 18, 27, .45); }
 }
 .card-meta { padding-top: 18px; }
 .card-meta h3 { font-size: 24px; font-weight: 900; font-variation-settings: "wdth" 120; text-transform: uppercase; line-height: 1.1; margin: 8px 0 4px; }
@@ -413,6 +435,7 @@ main, .foot { position: relative; z-index: 2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .flip-hint { animation: none; box-shadow: 0 0 10px rgba(227, 18, 27, .3); }
   .biz-ig { animation: none; }
   .flip-inner, .flip.is-flipped .flip-inner { transform: none; transition: none; }
   .flip-face { transition: opacity .5s ease; }

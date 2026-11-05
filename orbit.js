@@ -5,10 +5,17 @@
 
   // Flip card: `front(inner)` builds the front face; the back plays the entry's video (see /flip.js).
   // Any athlete or business with a `video` gets one.
+  // "Tap to flip" tag. flipTag: "light" (light pill, black text) or "dark" (dark pill, white text);
+  // leave it out and /flip.js picks one from how bright the image behind the tag is.
+  const flipIcon = `<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M18 2.5v4.3h-4.3M6 21.5v-4.3h4.3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const flipHint = (item) => {
+    const tone = item.flipTag === "light" || item.flipTag === "dark" ? item.flipTag : "";
+    return `<span class="flip-hint${tone ? " flip-hint--" + tone : ""}"${tone ? "" : " data-auto"}>${flipIcon}<span>Tap to flip</span></span>`;
+  };
   const flipCard = (item, dup, front, extraClass = "") =>
     `<div class="flip${extraClass}" role="button" tabindex="${dup ? -1 : 0}" aria-pressed="false" aria-label="${esc(item.name)}: flip to watch the video">` +
     `<div class="flip-inner">` +
-    `<div class="flip-face flip-front">${front(`<span class="flip-hint">Tap to flip</span>`)}</div>` +
+    `<div class="flip-face flip-front">${front(flipHint(item))}</div>` +
     `<div class="flip-face flip-back"><video muted loop playsinline preload="none" disablepictureinpicture aria-hidden="true"` +
     ` data-src="/assets/video/${esc(item.video)}"${item.poster ? ` data-poster="/assets/img/${esc(item.poster)}"` : ""}></video></div>` +
     `</div><i class="orbit-shade"></i></div>`;

@@ -54,6 +54,39 @@
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(card); }
   }));
 
+  // "Tap to flip" tags without a flipTag setting: light tag over a light photo, dark tag otherwise
+  const toneCache = new Map();
+  const pickTone = (hint) => {
+    const photo = hint.offsetParent;
+    const img = photo && [...photo.children].find((el) => el.tagName === "IMG");
+    if (!img) { hint.classList.add("flip-hint--dark"); return; } // poster cards: dark background behind the tag
+    const decide = () => {
+      if (!img.naturalWidth || !img.offsetWidth) return;
+      const sx = img.naturalWidth / img.offsetWidth, sy = img.naturalHeight / img.offsetHeight;
+      const left = hint.offsetLeft - hint.offsetWidth / 2; // the tag is centred with translateX(-50%)
+      const x = Math.max(0, left - 6) * sx, y = Math.max(0, hint.offsetTop - 6) * sy;
+      const w = (hint.offsetWidth + 12) * sx, h = (hint.offsetHeight + 12) * sy;
+      const key = img.currentSrc + "|" + [x, y, w, h].map(Math.round).join(",");
+      let light = toneCache.get(key);
+      if (light === undefined) {
+        try {
+          const c = document.createElement("canvas"); c.width = 48; c.height = 16;
+          const ctx = c.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+          const d = ctx.getImageData(0, 0, c.width, c.height).data;
+          let sum = 0;
+          for (let i = 0; i < d.length; i += 4) sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+          light = sum / (d.length / 4) > 150;
+        } catch (err) { light = false; }
+        toneCache.set(key, light);
+      }
+      hint.classList.toggle("flip-hint--light", light);
+      hint.classList.toggle("flip-hint--dark", !light);
+    };
+    if (img.complete) decide(); else img.addEventListener("load", decide, { once: true });
+  };
+  document.querySelectorAll(".flip-hint[data-auto]").forEach(pickTone);
+
   // Start downloading only when the card gets close to the screen
   const near = new IntersectionObserver((entries) => {
     entries.forEach((e) => { if (e.isIntersecting) { load(e.target); near.unobserve(e.target); } });
