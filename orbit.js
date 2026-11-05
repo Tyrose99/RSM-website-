@@ -30,7 +30,9 @@
     );
   };
 
-  // Business card: poster with the logo centred, name and tag at the bottom
+  // Business card: poster with the logo centred, name and tag at the bottom,
+  // and a floating Instagram link just under the card (outside the poster, so it never flips it)
+  const igIcon = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor"/></svg>`;
   const businessCard = (b, dup) => {
     const handle = (b.instagram || "").replace(/^@/, "").trim();
     const poster = (inner) =>
@@ -38,13 +40,31 @@
       `<div class="poster-art"><img src="/assets/img/${esc(b.logo)}" alt="${dup ? "" : esc(b.name + " logo")}" loading="lazy" decoding="async" draggable="false"></div>` +
       `<div class="poster-foot"><h3>${esc(b.name)}</h3>` +
       (b.tag ? `<p>${esc(b.tag)}</p>` : "") +
-      igLink(handle, dup) +
       `</div>${inner}</div>`;
-    return b.video ? flipCard(b, dup, poster) : poster(`<i class="orbit-shade"></i>`);
+    const ig = handle
+      ? `<a class="biz-ig" href="https://instagram.com/${encodeURIComponent(handle)}" target="_blank" rel="noopener" aria-label="${esc(b.name)} on Instagram (opens in a new tab)"${dup ? ' tabindex="-1"' : ""}>${igIcon}<span>@${esc(handle)}</span></a>`
+      : "";
+    return (b.video ? flipCard(b, dup, poster) : poster(`<i class="orbit-shade"></i>`)) + ig;
   };
 
   createOrbit("orbit", "orbitRing", (window.RSM_CLIENTS || []).filter((c) => c && c.name && c.photo), athleteCard);
   createOrbit("bizOrbit", "bizOrbitRing", (window.RSM_BUSINESSES || []).filter((b) => b && b.name && b.logo), businessCard);
+
+  // Some mobile browsers hit-test taps on the turning 3D cards as landing on the ring behind them.
+  // Send a tap that visibly lands on a business card's Instagram link to that link (and never flip the card).
+  const bizRoot = document.getElementById("bizOrbit");
+  if (bizRoot) bizRoot.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.target.closest(".orbit-card")) return;
+    let best = null, bestZ = -1;
+    for (const a of bizRoot.querySelectorAll(".biz-ig")) {
+      const card = a.closest(".orbit-card");
+      if (card.style.pointerEvents === "none") continue;
+      const r = a.getBoundingClientRect();
+      const z = +card.style.zIndex || 0;
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && z > bestZ) { best = a; bestZ = z; }
+    }
+    if (best) { e.preventDefault(); window.open(best.href, "_blank", "noopener"); }
+  });
 
   function createOrbit(rootId, ringId, clients, cardHtml) {
   const root = document.getElementById(rootId);

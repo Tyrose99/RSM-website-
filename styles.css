@@ -236,6 +236,31 @@ main, .foot { position: relative; z-index: 2; }
 .orbit-title { text-align: center; margin-top: 100px; }
 .orbit-title + .orbit { margin-top: 28px; }
 .orbit--posters { height: calc(var(--orbit-w) * 1.25 + 40px + 60px); }
+/* Floating Instagram link under each business card (fits in the space below the poster) */
+.biz-ig {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: max-content;
+  min-height: 36px;
+  margin: 12px auto 0;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 238, 232, .12);
+  background: rgba(11, 11, 11, .6);
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: .06em;
+  box-shadow: 0 0 18px -4px rgba(227, 18, 27, .45);
+  animation: ig-float 3.6s ease-in-out infinite;
+  transition: border-color .25s, box-shadow .25s;
+  -webkit-tap-highlight-color: transparent;
+}
+.biz-ig svg { color: var(--red); flex: none; }
+.biz-ig:hover { border-color: rgba(227, 18, 27, .55); box-shadow: 0 0 24px -2px rgba(227, 18, 27, .6); }
+.biz-ig:focus-visible { outline: 2px solid var(--muted); outline-offset: 3px; }
+@keyframes ig-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .poster {
   aspect-ratio: 4 / 5;
   display: flex;
@@ -379,6 +404,7 @@ main, .foot { position: relative; z-index: 2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .biz-ig { animation: none; }
   .flip-inner, .flip.is-flipped .flip-inner { transform: none; transition: none; }
   .flip-face { transition: opacity .5s ease; }
   .flip-back { transform: none; opacity: 0; }

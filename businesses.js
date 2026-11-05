@@ -7,7 +7,8 @@
        - name:      shown in bold at the bottom of the poster
        - logo:      the file name in /assets/img/
        - tag:       short line under the name (leave "" to hide it)
-       - instagram: their handle without the @ (leave "" to hide it)
+       - instagram: their handle without the @, e.g. instagram: "kosportstv" (leave "" to hide it).
+         It shows as a floating Instagram link under their card.
        - video / poster (optional): a clip in /assets/video/ and a still frame in /assets/img/.
          Adding these turns the card into a "Tap to flip" card with the video on the back.
   That's it. The orbit adjusts to however many businesses are listed.
@@ -17,7 +18,7 @@ window.RSM_BUSINESSES = [
     name: "LLMD",
     logo: "llmd-mobile-detailing.webp",
     tag: "Mobile Detailing",
-    instagram: "",
+    instagram: "loves_luxurydetailing",
     video: "llmd-mobile-detailing.mp4",
     poster: "llmd-mobile-detailing-poster.webp",
   },
@@ -25,14 +26,14 @@ window.RSM_BUSINESSES = [
     name: "KOSPORTSTV",
     logo: "kosportstv.webp",
     tag: "Training & Performance",
-    instagram: "",
+    instagram: "kosportstv",
     video: "ko-sports-clip.mp4",
     poster: "ko-sports-clip-poster.webp",
   },
   {
     name: "STT",
     logo: "set-the-tone.webp",
-    tag: "Set the Tone",
-    instagram: "",
+    tag: "Lacrosse Events & Training",
+    instagram: "setthetonelacrosse",
   },
 ];
