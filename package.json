@@ -1,0 +1,14 @@
+{
+  "name": "rsm-website",
+  "private": true,
+  "type": "module",
+  "description": "RSM public site (static) + private /jarvis assistant (Vercel functions)",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/functions": "^3.11.0"
+  }
+}

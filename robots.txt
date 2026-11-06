@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /jarvis
+Disallow: /api/
+Disallow: /data/

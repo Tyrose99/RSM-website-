@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/jarvis/chat.js": { "maxDuration": 30, "includeFiles": "data/rsm-data.json" },
+    "api/jarvis/stats.js": { "includeFiles": "data/rsm-data.json" },
+    "api/jarvis/speak.js": { "maxDuration": 30 }
+  }
+}

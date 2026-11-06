@@ -1,0 +1,16 @@
+{
+  "_placeholder": true,
+  "_note": "PLACEHOLDER: the real rsm-data.json was not attached. Replace this whole file with it. The only entries here are what the public website already shows.",
+  "athletes": [
+    { "name": "Chris Brown", "sport": "Football", "detail": "WR #1, Moravian University", "source": "public website" },
+    { "name": "Mohammed Masoud", "sport": "Basketball", "detail": "Jordan National Team", "source": "public website" }
+  ],
+  "deals": [],
+  "clients": [
+    { "name": "LLMD (Love's Luxury Mobile Detailing)", "type": "Mobile Detailing", "instagram": "loves_luxurydetailing", "source": "public website" },
+    { "name": "KOSPORTSTV", "type": "Training & Performance", "instagram": "kosportstv", "source": "public website" },
+    { "name": "STT (Set the Tone)", "type": "Lacrosse Events & Training", "instagram": "setthetonelacrosse", "source": "public website" }
+  ],
+  "leads": [],
+  "growth_moves": []
+}
