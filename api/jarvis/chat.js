@@ -84,8 +84,8 @@ function anthropicKey() {
     .replace(/^["'`]+|["'`]+$/g, "")
     .trim();
 }
-// Safe description of the key for the logs: never the key itself
-const keyShape = (k) => `looks like an Anthropic API key: ${k.startsWith("sk-ant-api")}, length ${k.length}`;
+// Safe description of the key for the logs: only its type prefix (e.g. "sk-ant-usr") and length, never the key
+const keyShape = (k) => `key type: ${(k.match(/^sk-ant-[a-z]+/) || ["unrecognized"])[0]}, length ${k.length}`;
 
 const spoken = (s) => s.replace(/[*_#`>]+/g, "").replace(/^\s*[-•]\s+/gm, "").replace(/\s+\n/g, "\n").trim();
 
@@ -117,8 +117,11 @@ export async function POST(request) {
   while (history.length && history[0].role !== "user") history.shift();
   const messages = [...history, { role: "user", content: text }];
 
-  // Send the key in the standard x-api-key header
-  const client = new Anthropic({ apiKey: null, authToken: null, defaultHeaders: { "x-api-key": apiKey } });
+  // The SDK sends the key as "Authorization: Bearer <key>", which Console keys (including user and
+  // service-account keys) accept. ANTHROPIC_WORKSPACE_ID is optional: set it in Vercel only if the
+  // key needs a specific workspace.
+  const workspace = String(process.env.ANTHROPIC_WORKSPACE_ID || "").trim();
+  const client = new Anthropic({ apiKey, ...(workspace ? { defaultHeaders: { "anthropic-workspace-id": workspace } } : {}) });
   const tools = TOOLS();
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
