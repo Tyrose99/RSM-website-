@@ -3,7 +3,7 @@
 // Login required (see /middleware.js). Claude gets the agent's personality plus three read-only tools.
 import Anthropic from "@anthropic-ai/sdk";
 import { AGENTS, DEFAULT_AGENT, detectSwitch } from "../../jarvis/agents.js";
-import { rsmData, isSample, sections, siteStats, recentInquiries } from "../_lib/jarvis-data.js";
+import { rsmData, isPlaceholder, sectionIsSample, sections, siteStats, recentInquiries } from "../_lib/jarvis-data.js";
 import { readSession } from "../_lib/session.js";
 
 const MODEL = "claude-sonnet-5-5";
@@ -47,8 +47,13 @@ async function runTool(name, input) {
   if (name === "get_recent_inquiries") return recentInquiries(input.limit);
   if (name === "get_rsm_data") {
     const d = rsmData();
-    const body = input.section === "all" ? Object.fromEntries(sections(d).map((k) => [k, d[k]])) : { [input.section]: d[input.section] ?? null };
-    return { sample_data: isSample(d), ...(isSample(d) ? { note: d._note } : {}), ...body };
+    const names = input.section === "all" ? sections(d) : [input.section];
+    return {
+      // which of the returned sections are sample data (the rest is real)
+      sample_sections: names.filter((n) => sectionIsSample(n, d)),
+      ...(isPlaceholder(d) ? { note: d._note } : {}),
+      ...Object.fromEntries(names.map((n) => [n, d[n] ?? null])),
+    };
   }
   throw new Error(`Unknown tool ${name}`);
 }
@@ -63,12 +68,24 @@ function systemPrompt(agentId, user) {
     "How to answer:",
     "- Your reply is spoken aloud. Answer in 2 to 5 short sentences of plain conversational English. No markdown, lists, headings, emoji, links or code.",
     "- Get facts with the tools. Only state numbers, names and details that came from a tool result in this conversation. If the data doesn't have it, say so plainly. Never guess or invent numbers.",
-    "- If a tool result says sample_data is true or is marked as placeholder data, say it's sample data when you use it.",
+    "- Tool results list any sample_sections. When you use data from one of those sections, say it's sample data. Everything else is real; don't call it sample.",
     "- Site visits are page views from anonymous visitors, so they aren't unique people.",
     "- Lead with the most important point.",
     "- The team: Jarvis (main assistant), Lead Scout (outreach leads and pitch angles), Growth Strategist (growth moves). The user switches by saying things like \"let me talk to Scout\" or \"back to Jarvis\". If a question fits another agent better, answer briefly and suggest switching.",
   ].join("\n");
 }
+
+// The key as pasted into Vercel, minus stray spaces, quotes or a leading "ANTHROPIC_API_KEY="
+function anthropicKey() {
+  return String(process.env.ANTHROPIC_API_KEY || "")
+    .trim()
+    .replace(/^ANTHROPIC_API_KEY\s*=\s*/i, "")
+    .trim()
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .trim();
+}
+// Safe description of the key for the logs: never the key itself
+const keyShape = (k) => `looks like an Anthropic API key: ${k.startsWith("sk-ant-api")}, length ${k.length}`;
 
 const spoken = (s) => s.replace(/[*_#`>]+/g, "").replace(/^\s*[-•]\s+/gm, "").replace(/\s+\n/g, "\n").trim();
 
@@ -87,7 +104,8 @@ export async function POST(request) {
     return Response.json({ agent, switched, reply: AGENTS[agent].greeting });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const apiKey = anthropicKey();
+  if (!apiKey) {
     return Response.json({ agent, switched, reply: "My brain isn't connected yet, sir. The Anthropic key still needs to be added in Vercel." });
   }
 
@@ -99,7 +117,8 @@ export async function POST(request) {
   while (history.length && history[0].role !== "user") history.shift();
   const messages = [...history, { role: "user", content: text }];
 
-  const client = new Anthropic();
+  // Send the key in the standard x-api-key header
+  const client = new Anthropic({ apiKey: null, authToken: null, defaultHeaders: { "x-api-key": apiKey } });
   const tools = TOOLS();
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
@@ -140,7 +159,13 @@ export async function POST(request) {
     }
     return Response.json({ agent, switched, reply: "That took me too many steps, sir. Try a narrower question." });
   } catch (err) {
-    console.error("jarvis chat error", err?.status, err?.message);
-    return Response.json({ agent, switched, reply: "I hit a snag reaching my brain, sir. Give it another try in a moment." }, { status: 502 });
+    const status = err?.status;
+    const message = String(err?.error?.error?.message || err?.message || "");
+    console.error("jarvis chat error", status, message, status === 401 ? `(${keyShape(apiKey)})` : "");
+    let reply = "I hit a snag reaching my brain, sir. Give it another try in a moment.";
+    if (status === 401) reply = "My Anthropic key isn't being accepted, sir. It needs to be replaced in Vercel.";
+    else if (/credit balance/i.test(message)) reply = "My Anthropic account is out of credit, sir. Top it up in the Anthropic console and I'll be right back.";
+    else if (status === 429) reply = "I'm being rate limited, sir. Give me a moment and ask again.";
+    return Response.json({ agent, switched, reply }, { status: 502 });
   }
 }

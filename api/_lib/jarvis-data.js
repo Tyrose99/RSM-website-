@@ -8,25 +8,45 @@ export function rsmData() {
   if (!cache) cache = JSON.parse(readFileSync(new URL("../../data/rsm-data.json", import.meta.url), "utf8"));
   return cache;
 }
-export const isSample = (d = rsmData()) => Boolean(d._placeholder || d._sample || d.sample);
+export const isPlaceholder = (d = rsmData()) => Boolean(d._placeholder);
 export const sections = (d = rsmData()) => Object.keys(d).filter((k) => !k.startsWith("_"));
-const list = (d, ...names) => {
-  for (const n of names) if (Array.isArray(d[n])) return d[n];
-  return [];
-};
 
+// A section counts as sample data only if it is marked that way itself
+// (e.g. "website_visitors": { "sample": true, ... }, or listed in "_sample_sections"),
+// or if the whole file is the placeholder. Everything else is real.
+const flagged = (o) => Boolean(o && typeof o === "object" && (o.sample === true || o._sample === true || o.is_sample === true));
+export function sectionIsSample(name, d = rsmData()) {
+  if (isPlaceholder(d)) return true;
+  const marked = [].concat(d._sample_sections || d.sample_sections || []);
+  if (marked.includes(name)) return true;
+  const v = d[name];
+  if (flagged(v)) return true;
+  const items = asList(v);
+  return items.length > 0 && items.every(flagged);
+}
+// A section may be a plain list or an object holding the list ({ items: [...] })
+function asList(v) {
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === "object") for (const k of ["items", "records", "list", "entries", "data"]) if (Array.isArray(v[k])) return v[k];
+  return [];
+}
+const list = (d, ...names) => {
+  for (const n of names) if (d[n] !== undefined) return { name: n, items: asList(d[n]) };
+  return { name: names[0], items: [] };
+};
+const statusOf = (x) => String((x && (x.status ?? x.stage ?? x.state)) || "").trim().toLowerCase();
+const OPEN_DEAL = new Set(["pitching", "outreach", "prospecting"]);
+
+// Signed athletes: status "Signed". Open deals: status Pitching, Outreach or Prospecting.
 export function headline() {
   const d = rsmData();
   const athletes = list(d, "athletes");
-  const hasStatus = athletes.some((a) => a && a.status);
   const deals = list(d, "deals");
-  const dealsHaveStatus = deals.some((x) => x && x.status);
   return {
-    signedAthletes: hasStatus ? athletes.filter((a) => /signed|active|client/i.test(a.status || "")).length : athletes.length,
-    openDeals: dealsHaveStatus
-      ? deals.filter((x) => !/closed|lost|won|dead|declined|done|complete|paid/i.test(x.status || "")).length
-      : deals.length,
-    sample: isSample(d),
+    signedAthletes: athletes.items.filter((a) => statusOf(a) === "signed").length,
+    openDeals: deals.items.filter((x) => OPEN_DEAL.has(statusOf(x))).length,
+    athletesSample: sectionIsSample(athletes.name, d),
+    dealsSample: sectionIsSample(deals.name, d),
   };
 }
 

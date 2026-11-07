@@ -67,7 +67,6 @@ async function api(path, opts) {
 async function loadStats() {
   try {
     const s = await (await api("/api/jarvis/stats")).json();
-    const sample = s.sample ? "sample data" : "";
     $("s-visits").textContent = s.visitsWeek ?? "—";
     const ch = s.visitsWeekChange;
     $("s-visits-sub").innerHTML =
@@ -75,9 +74,9 @@ async function loadStats() {
       ch == null ? "vs last week: new" : `<span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "▲" : "▼"} ${Math.abs(ch)}%</span> vs last week`;
     $("s-inq").textContent = s.newInquiries ?? "—";
     $("s-ath").textContent = s.signedAthletes;
-    $("s-ath-sub").textContent = sample;
+    $("s-ath-sub").textContent = s.athletesSample ? "sample data" : "";
     $("s-deals").textContent = s.openDeals;
-    $("s-deals-sub").textContent = sample;
+    $("s-deals-sub").textContent = s.dealsSample ? "sample data" : "";
   } catch {}
 }
 
