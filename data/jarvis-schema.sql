@@ -100,3 +100,49 @@ CREATE TABLE IF NOT EXISTS jarvis_briefings (
   data       jsonb       NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- ---------- Instagram (@rsm.collective, read-only) ----------
+-- The long-lived access token, kept encrypted (AES-GCM). One row. The first token comes from the
+-- INSTAGRAM_ACCESS_TOKEN Vercel variable; after that Jarvis keeps the refreshed one here.
+CREATE TABLE IF NOT EXISTS jarvis_instagram_auth (
+  id           int PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  token_enc    text        NOT NULL,
+  env_fp       text,                       -- fingerprint of the Vercel token it was seeded from (not the token)
+  ig_user_id   text,
+  username     text,
+  expires_at   timestamptz,
+  refreshed_at timestamptz,
+  synced_at    timestamptz,                -- last time posts were pulled
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+
+-- One follower-count snapshot per day, to graph growth
+CREATE TABLE IF NOT EXISTS jarvis_instagram_followers (
+  day         date PRIMARY KEY,
+  followers   integer NOT NULL,
+  follows     integer,
+  media_count integer,
+  captured_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Posts and reels with their numbers, plus a saved copy of the thumbnail (Instagram's image links expire)
+CREATE TABLE IF NOT EXISTS jarvis_instagram_media (
+  id           text PRIMARY KEY,
+  media_type   text,                       -- IMAGE | VIDEO | CAROUSEL_ALBUM
+  product_type text,                       -- FEED | REELS | STORY
+  caption      text,
+  permalink    text,
+  posted_at    timestamptz,
+  likes        integer,
+  comments     integer,
+  reach        integer,
+  views        integer,
+  saved        integer,
+  shares       integer,
+  interactions integer,
+  thumb        bytea,
+  thumb_type   text,
+  insights_at  timestamptz,
+  synced_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS jarvis_instagram_media_posted ON jarvis_instagram_media (posted_at);

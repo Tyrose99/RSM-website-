@@ -2,6 +2,8 @@
 // numbers the model writes), and is marked sample when any of its rows come from sample data.
 import { dailySeries, trafficBreakdown } from "./jarvis-data.js";
 import { listRecords, listTasks, listMemories, listActivity, listApprovals, getDraft, ymd } from "./jarvis-store.js";
+import { findSiteMedia } from "./site-media.js";
+import { getProfile, followerGrowth, listPosts } from "./instagram.js";
 
 let seq = 0;
 const card = (type, title, data, sample = false) => ({ id: `${type}-${Date.now().toString(36)}-${(seq++).toString(36)}`, type, title, sample: Boolean(sample), ...data });
@@ -11,7 +13,15 @@ const num = (v) => (v == null || v === "" ? null : Number(v));
 
 const PERIODS = { week: 7, month: 30, quarter: 90, year: 365 };
 
-export const CARD_TYPES = ["traffic", "money", "deals", "leads", "athlete", "tasks", "memories", "growth", "activity", "approvals", "email", "table"];
+export const CARD_TYPES = ["traffic", "money", "deals", "leads", "athlete", "tasks", "memories", "growth", "activity", "approvals", "email", "table",
+  "player", "business", "instagram_post", "instagram_top", "instagram_followers"];
+
+const CLOSED = /won|closed|signed|paid|complete|lost|dead|declined/i;
+const mentions = (row, name) => {
+  const n = String(name || "").toLowerCase();
+  return Boolean(n) && [row.name, row.athlete, row.business].some((v) => String(v || "").toLowerCase().includes(n));
+};
+const igUnavailable = (type, title, p) => card(type, title, { unavailable: p.message || "Instagram isn't connected yet.", connected: false });
 
 export async function buildCard(type, args = {}) {
   switch (type) {
@@ -96,6 +106,72 @@ export async function buildCard(type, args = {}) {
       const rows = await listRecords(entity, { search: args.search || null, limit: 50 });
       const columns = rows.length ? Object.keys(rows[0]).filter((k) => !["id", "details", "sample", "updated_at"].includes(k)) : [];
       return card("table", entity.replace("_", " ").replace(/^./, (c) => c.toUpperCase()), { columns, rows: rows.map(({ details, updated_at, ...r }) => r) }, anySample(rows));
+    }
+    case "player": {
+      const q = String(args.name || args.search || "").trim();
+      const [{ matches }, athletes, deals] = await Promise.all([
+        findSiteMedia(q, "player"),
+        listRecords("athletes", { search: q || null, limit: 5 }).catch(() => []),
+        listRecords("deals", { limit: 200 }).catch(() => []),
+      ]);
+      const m = matches[0] || null;
+      const rec = (m && athletes.find((a) => a.name.toLowerCase() === m.name.toLowerCase())) || athletes[0] || null;
+      if (!m && !rec) return card("player", "Player", { unavailable: `No player on the RSM site matches "${q}".` });
+      const name = m?.name || rec.name;
+      const open = deals.filter((d) => mentions(d, name) && !CLOSED.test(d.stage || ""));
+      return card("player", name, {
+        player: {
+          name, photo: m?.photo || null, poster: m?.poster || null, video: m?.video || null,
+          sport: m?.sport || rec?.sport || null, school: m?.school || rec?.school || null, position: m?.position || null,
+          detail: m?.detail || null, instagram: m?.instagram || rec?.details?.instagram || null, status: rec?.status || null,
+          on_site: Boolean(m),
+        },
+        deals: open.map((d) => ({ id: d.id, name: d.name, stage: d.stage, amount: num(d.amount), business: d.business, sample: d.sample })),
+      }, anySample(open) || (!m && rec?.sample));
+    }
+    case "business": {
+      const q = String(args.name || args.search || "").trim();
+      const [{ matches }, records, deals] = await Promise.all([
+        findSiteMedia(q, "business"),
+        listRecords("businesses", { search: q || null, limit: 5 }).catch(() => []),
+        listRecords("deals", { limit: 200 }).catch(() => []),
+      ]);
+      const m = matches[0] || null;
+      const rec = (m && records.find((r) => r.name.toLowerCase() === m.name.toLowerCase())) || records[0] || null;
+      if (!m && !rec) return card("business", "Business", { unavailable: `No business on the RSM site matches "${q}".` });
+      const name = m?.name || rec.name;
+      const d = rec?.details || {};
+      const whatWeDo = d.what_we_do || d.services || d.work || d.notes || null;
+      const related = deals.filter((x) => mentions(x, name));
+      return card("business", name, {
+        business: {
+          name, logo: m?.logo || null, poster: m?.poster || null, video: m?.video || null,
+          tag: m?.tag || rec?.type || null, what_we_do: typeof whatWeDo === "string" ? whatWeDo : null,
+          status: rec?.status || (m ? "Featured on the website" : null), instagram: m?.instagram || rec?.instagram || null, on_site: Boolean(m),
+        },
+        deals: related.map((x) => ({ id: x.id, name: x.name, stage: x.stage, amount: num(x.amount), athlete: x.athlete, sample: x.sample })),
+      }, (rec?.sample && !m) || anySample(related));
+    }
+    case "instagram_post": {
+      const r = await listPosts({ sort: "recent", limit: 1, id: args.post_id || null, search: args.search || null });
+      if (!r.posts.length) return r.connected ? card("instagram_post", "Instagram post", { unavailable: args.search ? `No post mentions "${args.search}".` : "No posts found yet." }) : igUnavailable("instagram_post", "Instagram post", r.sync);
+      return card("instagram_post", args.post_id || args.search ? "Instagram post" : "Our latest post", { post: r.posts[0] });
+    }
+    case "instagram_top": {
+      const period = PERIODS[args.period] ? args.period : "month";
+      const r = await listPosts({ sort: "top", metric: args.metric || "reach", period, limit: 6 });
+      if (!r.posts.length) return r.connected ? card("instagram_top", "Top posts", { unavailable: `No posts in the last ${period}.` }) : igUnavailable("instagram_top", "Top posts", r.sync);
+      return card("instagram_top", `Top posts · last ${period}`, { posts: r.posts, metric: r.metric, period });
+    }
+    case "instagram_followers": {
+      const period = PERIODS[args.period] ? args.period : "month";
+      const profile = await getProfile();
+      if (!profile.connected) return igUnavailable("instagram_followers", "Instagram followers", profile);
+      const g = await followerGrowth(PERIODS[period]);
+      return card("instagram_followers", `@${profile.username || "rsm.collective"} followers`, {
+        followers: profile.followers, following: profile.follows, posts: profile.posts, period, ...g,
+        note: g.series.length < 2 ? `Daily tracking started ${g.tracking_since || "today"}, so the growth graph fills in day by day.` : null,
+      });
     }
     default:
       throw new Error(`Unknown card type ${type}`);

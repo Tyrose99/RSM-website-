@@ -1,0 +1,47 @@
+{
+  "clients": [
+    {
+      "name": "Chris Brown",
+      "photo": "chris-brown.webp",
+      "instagram": "",
+      "sport": "Football",
+      "detail": "WR #1 · Moravian University",
+      "video": "christopher-brown.mp4",
+      "poster": "christopher-brown-poster.webp"
+    },
+    {
+      "name": "Mohammed Masoud",
+      "photo": "moe-masoud.webp",
+      "instagram": "",
+      "sport": "Basketball",
+      "detail": "Jordan National Team",
+      "video": "moe-masoud.mp4",
+      "poster": "moe-masoud-poster.webp",
+      "flipTag": "light"
+    }
+  ],
+  "businesses": [
+    {
+      "name": "LLMD",
+      "logo": "llmd-mobile-detailing.webp",
+      "tag": "Mobile Detailing",
+      "instagram": "loves_luxurydetailing",
+      "video": "llmd-mobile-detailing.mp4",
+      "poster": "llmd-mobile-detailing-poster.webp"
+    },
+    {
+      "name": "KOSPORTSTV",
+      "logo": "kosportstv.webp",
+      "tag": "Training & Performance",
+      "instagram": "kosportstv",
+      "video": "ko-sports-clip.mp4",
+      "poster": "ko-sports-clip-poster.webp"
+    },
+    {
+      "name": "STT",
+      "logo": "set-the-tone.webp",
+      "tag": "Lacrosse Events & Training",
+      "instagram": "setthetonelacrosse"
+    }
+  ]
+}

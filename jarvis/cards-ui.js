@@ -18,20 +18,22 @@ const fmtWhen = (d) => (d ? new Date(d).toLocaleString("en-US", { month: "short"
 const cap = (s) => (s ? String(s)[0].toUpperCase() + String(s).slice(1) : "");
 
 // ---------- charts ----------
-export function sparkPaths(svg, series, { w = 100, h = 28 } = {}) {
+// fromMin: scale between the lowest and highest value (for totals like followers, where change is what matters)
+export function sparkPaths(svg, series, { w = 100, h = 28, fromMin = false } = {}) {
   svg.replaceChildren();
   if (!series || !series.length) return;
   const vals = series.map((d) => d.count);
-  const max = Math.max(1, ...vals);
+  const lo = fromMin ? Math.min(...vals) - Math.max(1, (Math.max(...vals) - Math.min(...vals)) * 0.15) : 0;
+  const max = Math.max(lo + 1, ...vals);
   const step = series.length > 1 ? w / (series.length - 1) : w;
-  const pts = vals.map((v, i) => [i * step, h - (v / max) * (h - 3) - 1.5]);
+  const pts = vals.map((v, i) => [i * step, h - ((v - lo) / (max - lo)) * (h - 3) - 1.5]);
   const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   svg.append(svgEl("path", { d: `${line} L${w},${h} L0,${h} Z`, class: "a" }), svgEl("path", { d: line, class: "l" }));
 }
-function areaChart(series) {
+function areaChart(series, { fromMin = false } = {}) {
   const wrap = el("div");
   const svg = svgEl("svg", { class: "jv-chart", viewBox: "0 0 300 110", preserveAspectRatio: "none" });
-  sparkPaths(svg, series, { w: 300, h: 110 });
+  sparkPaths(svg, series, { w: 300, h: 110, fromMin });
   const axis = el("div", "axis");
   axis.append(el("span", null, fmtDate(series[0]?.day)), el("span", null, fmtDate(series[series.length - 1]?.day)));
   wrap.append(svg, axis);
@@ -90,6 +92,44 @@ function diffWords(a, b) {
   while (j < B.length) out.push({ t: "ins", s: B[j++] });
   return out;
 }
+
+// Images: only same-site paths (/assets/... for the public site's photos, /api/jarvis/instagram for saved thumbnails)
+const safeSrc = (u) => (typeof u === "string" && /^\/(assets|api\/jarvis\/instagram)[\/?][^\s"'<>]*$/.test(u) ? u : null);
+function img(src, alt, cls) {
+  const s = safeSrc(src);
+  if (!s) return el("div", `${cls || ""} noimg`, alt ? alt.slice(0, 1) : "");
+  const i = el("img", cls);
+  i.src = s;
+  i.alt = alt || "";
+  i.loading = "lazy";
+  i.decoding = "async";
+  i.addEventListener("error", () => i.replaceWith(el("div", `${cls || ""} noimg`, alt ? alt.slice(0, 1) : "")));
+  return i;
+}
+function igLink(handle) {
+  const h = String(handle || "").replace(/^@/, "");
+  if (!/^[A-Za-z0-9._]{1,30}$/.test(h)) return null;
+  const a = el("a", "iglink", `@${h}`);
+  a.href = `https://instagram.com/${h}`;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  return a;
+}
+function postLink(url) {
+  if (!/^https:\/\/(www\.)?instagram\.com\/[A-Za-z0-9_\/\-]+\/?$/.test(url || "")) return null;
+  const a = el("a", "iglink", "Open on Instagram ↗");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  return a;
+}
+const fmtNum = (n) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
+function stats(pairs) {
+  const box = el("div", "igstats");
+  for (const [label, v] of pairs) { if (v === undefined) continue; const d = el("div"); d.append(el("b", null, fmtNum(v)), el("span", null, label)); box.append(d); }
+  return box;
+}
+const KIND = { reel: "Reel", carousel: "Carousel", video: "Video", photo: "Photo" };
 
 // ---------- the cards ----------
 const RENDER = {
@@ -243,6 +283,76 @@ const RENDER = {
     wrap.append(t);
     b.append(wrap);
   },
+  player(c, b) {
+    if (c.unavailable) return b.append(el("p", "note", c.unavailable));
+    const p = c.player;
+    const hero = el("div", "hero");
+    hero.append(img(p.photo, p.name, "portrait"));
+    const info = el("div", "heroinfo");
+    info.append(el("div", "heroname", p.name));
+    const prof = el("div", "from");
+    for (const [k, v] of [["Sport", p.sport], ["Position", p.position], ["School / team", p.school], ["Status", p.status]]) if (v) prof.append(el("span", null, k), el("b", null, v));
+    info.append(prof);
+    const ig = igLink(p.instagram);
+    info.append(ig || el("small", "muted", "No Instagram handle on the site yet"));
+    if (!p.on_site) info.append(el("small", "muted", "Not shown on the website"));
+    hero.append(info);
+    b.append(hero, el("div", "sec", "Open deals"));
+    b.append(c.deals?.length ? rowsList(c.deals, (li, d) => { li.append(el("b", null, d.name), el("span", "pill", d.stage || "—")); const sub = [d.business, d.amount != null ? fmtMoney(d.amount) : null, d.sample ? "sample" : null].filter(Boolean).join(" · "); if (sub) li.append(el("small", null, sub)); }) : el("p", "note", "No open deals."));
+  },
+  business(c, b) {
+    if (c.unavailable) return b.append(el("p", "note", c.unavailable));
+    const x = c.business;
+    const hero = el("div", "hero");
+    hero.append(img(x.logo || x.poster, x.name, "logo"));
+    const info = el("div", "heroinfo");
+    info.append(el("div", "heroname", x.name));
+    const prof = el("div", "from");
+    for (const [k, v] of [["What they do", x.tag], ["What we do for them", x.what_we_do], ["Status", x.status]]) if (v) prof.append(el("span", null, k), el("b", null, v));
+    info.append(prof);
+    const ig = igLink(x.instagram);
+    if (ig) info.append(ig);
+    hero.append(info);
+    b.append(hero);
+    if (c.deals?.length) b.append(el("div", "sec", "Deals"), rowsList(c.deals, (li, d) => { li.append(el("b", null, d.name), el("span", "pill", d.stage || "—")); }));
+  },
+  instagram_post(c, b) {
+    if (c.unavailable) return b.append(el("p", "note", c.unavailable));
+    const p = c.post;
+    const wrap = el("div", "igpost");
+    wrap.append(img(p.thumb_url, KIND[p.kind] || "Post", "igimg"));
+    const side = el("div");
+    side.append(el("small", "muted", [KIND[p.kind], fmtWhen(p.posted_at)].filter(Boolean).join(" · ")));
+    if (p.caption) side.append(el("p", "caption", p.caption.length > 280 ? p.caption.slice(0, 280) + "…" : p.caption));
+    side.append(stats([["likes", p.likes], ["comments", p.comments], ["reach", p.reach], [p.kind === "reel" || p.kind === "video" ? "plays" : "views", p.views], ["saves", p.saved], ["shares", p.shares]].filter(([, v], i) => i < 2 || v != null)));
+    if (p.reach == null) side.append(el("small", "muted", "Reach isn't available for this post."));
+    const link = postLink(p.permalink);
+    if (link) side.append(link);
+    wrap.append(side);
+    b.append(wrap);
+  },
+  instagram_top(c, b) {
+    if (c.unavailable) return b.append(el("p", "note", c.unavailable));
+    const grid = el("div", "iggrid");
+    const label = { reach: "reach", views: "views", likes: "likes", comments: "comments", engagement: "interactions" }[c.metric] || "reach";
+    c.posts.forEach((p, i) => {
+      const cell = el("div", "igcell");
+      cell.append(img(p.thumb_url, KIND[p.kind] || "Post", "igimg"));
+      const score = c.metric === "likes" ? p.likes : c.metric === "comments" ? p.comments : c.metric === "views" ? p.views : c.metric === "engagement" ? p.interactions ?? (p.likes || 0) + (p.comments || 0) : p.reach ?? p.interactions;
+      cell.append(el("b", "rank", `#${i + 1}`), el("small", null, `${score == null ? `${fmtNum(p.likes)} likes` : `${fmtNum(score)} ${label}`} · ${fmtDate(p.posted_at)}`));
+      const link = postLink(p.permalink);
+      if (link) { link.textContent = "Open ↗"; cell.append(link); }
+      grid.append(cell);
+    });
+    b.append(grid);
+  },
+  instagram_followers(c, b) {
+    if (c.unavailable) return b.append(el("p", "note", c.unavailable));
+    b.append(el("div", "big", fmtNum(c.followers)), el("p", "note", c.gained == null ? "followers" : `followers · ${c.gained >= 0 ? "+" : ""}${fmtNum(c.gained)} since ${fmtDate(c.from)}`));
+    if (c.series?.length > 1) b.append(areaChart(c.series, { fromMin: true }));
+    if (c.note) b.append(el("p", "note", c.note));
+    b.append(stats([["following", c.following], ["posts", c.posts]]));
+  },
   briefing(c, b) {
     const f = c.facts || {};
     b.append(el("p", null, c.text));
@@ -254,7 +364,7 @@ const RENDER = {
   },
 };
 
-const WIDE = new Set(["deals", "table", "briefing", "email"]);
+const WIDE = new Set(["deals", "table", "briefing", "email", "instagram_top", "instagram_post"]);
 
 export function renderCard(c, ctx) {
   const node = el("article", `jv-card${WIDE.has(c.type) ? " wide" : ""}`);

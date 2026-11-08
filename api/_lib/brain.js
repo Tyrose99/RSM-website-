@@ -4,6 +4,8 @@ import { AGENTS } from "../../jarvis/agents.js";
 import { siteStats, recentInquiries } from "./jarvis-data.js";
 import * as store from "./jarvis-store.js";
 import { buildCard, cardSummary, CARD_TYPES } from "./cards.js";
+import { findSiteMedia } from "./site-media.js";
+import * as insta from "./instagram.js";
 
 export const MODEL = "claude-sonnet-5-5";
 const MAX_TOOL_ROUNDS = 8;
@@ -60,18 +62,42 @@ function tools({ withSpecialists }) {
     {
       name: "show_card",
       description:
-        "Show a glass card on Justin/Tyler's screen while you talk. Use it whenever you answer about RSM data. Types: traffic (period), money (period: week|month|quarter|year), deals (search), leads (search), athlete (name), tasks (owner, scope: today|open|overdue|done|all), memories, growth, activity, approvals, email (draft_id, or channel for the inbox placeholder), table (entity, search). Returns the card's data so you can speak about it.",
+        "Show a glass card on Justin/Tyler's screen while you talk. Use it whenever you answer about RSM data. Types: traffic (period), money (period: week|month|quarter|year), deals (search), leads (search), athlete (name), tasks (owner, scope: today|open|overdue|done|all), memories, growth, activity, approvals, email (draft_id, or channel for the inbox placeholder), table (entity, search), player (name: an athlete with their site photo, IG and open deals), business (name: a business with its logo, what we do for them and status), instagram_post (latest by default; post_id or search), instagram_top (period, metric), instagram_followers (period). Returns the card's data so you can speak about it.",
       input_schema: obj({
         type: str("Card type", { enum: CARD_TYPES }),
-        period: str("For traffic/money", { enum: ["week", "month", "quarter", "year"] }),
-        search: str("For deals/leads/table"),
-        name: str("For athlete"),
+        period: str("For traffic/money/instagram_top/instagram_followers", { enum: ["week", "month", "quarter", "year"] }),
+        search: str("For deals/leads/table, or caption text for instagram_post"),
+        name: str("For athlete, player or business"),
+        post_id: str("For instagram_post: a post id from get_instagram_posts"),
+        metric: str("For instagram_top", { enum: ["reach", "views", "likes", "comments", "engagement"] }),
         owner: str("For tasks", { enum: ["justin", "tyler", "jarvis"] }),
         scope: str("For tasks", { enum: ["today", "open", "overdue", "done", "all"] }),
         entity: str("For table", { enum: RECORD_TYPES }),
         draft_id: { type: "integer", description: "For email: the draft to show" },
         channel: str("For email", { enum: ["email", "instagram_dm"] }),
       }, ["type"]),
+    },
+    {
+      name: "get_site_media",
+      description: "Look up the athletes (players) and businesses shown on the public RSM website: name, photo, sport, school/team, Instagram handle, and the business tagline. Leave query empty to list them all.",
+      input_schema: obj({ query: str("Name or handle to look for"), kind: str("What to look for", { enum: ["player", "business", "any"] }) }),
+    },
+    { name: "get_instagram_profile", description: "Live numbers for RSM's Instagram, @rsm.collective: followers, following, post count, and follower growth over the last 7 and 30 days from Jarvis's daily snapshots.", input_schema: obj({}) },
+    {
+      name: "get_instagram_posts",
+      description: "RSM's Instagram posts and reels with date, caption, likes, comments, reach, views, saves and shares. sort recent for the latest posts, top for the best ones in a period. Returns post ids for show_card instagram_post.",
+      input_schema: obj({
+        sort: str("recent or top", { enum: ["recent", "top"] }),
+        metric: str("What 'best' means for top (default reach)", { enum: ["reach", "views", "likes", "comments", "engagement"] }),
+        period: str("Time window", { enum: ["week", "month", "quarter", "year", "all"] }),
+        limit: { type: "integer", description: "1 to 12" },
+        search: str("Optional caption text to match"),
+      }),
+    },
+    {
+      name: "get_instagram_insights",
+      description: "Account insights for @rsm.collective over the last week or month: reach, views, accounts engaged, interactions, new follows and unfollows (when Instagram provides them), plus follower growth from Jarvis's daily snapshots.",
+      input_schema: obj({ period: str("week or month", { enum: ["week", "month"] }) }),
     },
     {
       name: "remember",
@@ -151,6 +177,8 @@ export async function systemPrompt(agentId, user, { direct = false } = {}) {
     "- When you talk about RSM data, also call show_card so it appears on screen. Keep speaking short; the card has the detail.",
     "- If a result is marked sample, say it's sample data.",
     "- Use web_search for current outside information (businesses, NIL news, events, competitors). Say where it came from in a few words, like \"according to the Sun Sentinel\".",
+    "- Instagram (@rsm.collective) is read-only: you can look at followers, posts and insights, but you can't post, comment or DM. For \"our last post\" use show_card instagram_post; for the best post use instagram_top; for follower growth use instagram_followers. Reach and views can be missing for some posts; say so rather than guessing.",
+    "- When asked to show an athlete or business from the website (\"show me Chris Brown\"), use show_card player or business.",
     "- Tasks, memories and drafts: just do them. Business records (athletes, deals, businesses, leads, growth moves): confirm the exact change out loud first and only change it after a yes.",
     "- Save decisions, deadlines and client details with remember when they come up, without being asked.",
     "- Nothing leaves the app (emails, DMs, posts, deletes) without Justin or Tyler tapping Approve. You can draft and queue, never send.",
@@ -169,6 +197,19 @@ async function runTool(name, input, ctx) {
   switch (name) {
     case "get_site_stats": return siteStats();
     case "get_recent_inquiries": return recentInquiries(input.limit || 5);
+    case "get_site_media": return findSiteMedia(input.query || "", input.kind || "any");
+    case "get_instagram_profile": {
+      const p = await insta.getProfile();
+      if (!p.connected) return p;
+      const [w, m] = await Promise.all([insta.followerGrowth(7), insta.followerGrowth(30)]);
+      return { ...p, gained_last_7_days: w.gained, gained_last_30_days: m.gained, tracking_since: m.tracking_since, note: w.series.length < 2 ? "Daily follower tracking only started recently, so growth may not be known yet." : null };
+    }
+    case "get_instagram_posts": {
+      const r = await insta.listPosts({ sort: input.sort || "recent", metric: input.metric || "reach", period: input.period || "all", limit: Math.min(12, input.limit || 6), search: input.search || null });
+      if (!r.connected) return r.sync;
+      return { sort: r.sort, metric: r.metric, period: r.period, posts: r.posts.map(({ thumb_url, ...p }) => ({ ...p, caption: p.caption ? p.caption.slice(0, 300) : null })) };
+    }
+    case "get_instagram_insights": return insta.accountInsights(input.period === "month" ? "month" : "week");
     case "query_records": {
       const rows = await store.listRecords(input.type, { search: input.search || null, limit: 30 });
       return { type: input.type, count: rows.length, sample_rows: rows.filter((r) => r.sample).length, rows };

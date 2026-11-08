@@ -100,6 +100,12 @@ async function loadHud() {
       if (t.overdue) s.className = "late";
       list.append(s);
     }
+    const ig = h.instagram;
+    $("t-ig").textContent = ig?.connected && ig.followers != null ? ig.followers.toLocaleString("en-US") : "—";
+    const igCh = $("t-ig-change");
+    igCh.textContent = !ig?.connected ? (ig?.reason === "expired" ? "connection expired" : "not connected") : ig.gainedWeek == null ? "tracking daily" : `${ig.gainedWeek >= 0 ? "▲" : "▼"} ${Math.abs(ig.gainedWeek)} this week`;
+    igCh.className = ig?.connected && ig.gainedWeek != null ? (ig.gainedWeek >= 0 ? "up" : "down") : "";
+    sparkPaths($("s-ig"), ig?.series || [], { fromMin: true });
     const ok = h.db.site && h.db.jarvis;
     setDot(ok ? "ok" : "warn", ok ? "All systems online" : "Some data isn't connected yet");
   } catch (e) {

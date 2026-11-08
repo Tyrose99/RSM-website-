@@ -7,7 +7,8 @@ GRANT CONNECT ON DATABASE neondb TO jarvis_app;
 GRANT USAGE ON SCHEMA public TO jarvis_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON
   jarvis_memories, jarvis_tasks, jarvis_athletes, jarvis_deals, jarvis_businesses, jarvis_leads,
-  jarvis_growth_moves, jarvis_activity, jarvis_drafts, jarvis_approvals, jarvis_briefings
+  jarvis_growth_moves, jarvis_activity, jarvis_drafts, jarvis_approvals, jarvis_briefings,
+  jarvis_instagram_auth, jarvis_instagram_followers, jarvis_instagram_media
   TO jarvis_app;
 GRANT USAGE, SELECT ON
   jarvis_memories_id_seq, jarvis_tasks_id_seq, jarvis_athletes_id_seq, jarvis_deals_id_seq,
