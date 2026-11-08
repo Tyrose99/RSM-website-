@@ -114,7 +114,7 @@ document.querySelectorAll("button.jv-tile[data-card]").forEach((t) =>
   t.addEventListener("click", async () => {
     const { card: type, ...args } = t.dataset;
     try {
-      const r = await post("/api/jarvis/card", { type, ...args });
+      const r = await post("/api/jarvis/act", { action: "card", type, ...args });
       if (r.ok) addCards([(await r.json()).card]);
     } catch {}
   }),
@@ -160,10 +160,10 @@ $("greet-close").addEventListener("click", () => ($("greet").hidden = true));
 const cardCtx = {
   reduced,
   close: (id) => closeCard(id),
-  toggleTask: async (id, done) => { try { const r = await post("/api/jarvis/tasks", { task_id: id, done }); loadHud(); return r.ok; } catch { return false; } },
-  saveDraft: (id, d) => post("/api/jarvis/drafts", { id, ...d }).catch(() => {}),
-  queueDraft: async (id) => { try { const r = await post("/api/jarvis/approvals", { draft_id: id }); loadHud(); return r.ok; } catch { return false; } },
-  decide: async (id, decision) => { try { const r = await post("/api/jarvis/approvals", { id, decision }); loadHud(); return r.ok ? (await r.json()).approval : null; } catch { return null; } },
+  toggleTask: async (id, done) => { try { const r = await post("/api/jarvis/act", { action: "task", task_id: id, done }); loadHud(); return r.ok; } catch { return false; } },
+  saveDraft: (id, d) => post("/api/jarvis/act", { action: "draft", id, ...d }).catch(() => {}),
+  queueDraft: async (id) => { try { const r = await post("/api/jarvis/act", { action: "queue", draft_id: id }); loadHud(); return r.ok; } catch { return false; } },
+  decide: async (id, decision) => { try { const r = await post("/api/jarvis/act", { action: "decide", id, decision }); loadHud(); return r.ok ? (await r.json()).approval : null; } catch { return null; } },
 };
 function addCards(list) {
   for (const c of list || []) {
