@@ -101,3 +101,29 @@ export async function recentInquiries(limit = 5) {
     inquiries: rows,
   };
 }
+
+// ---------- daily series for sparklines, traffic cards and the briefing (read-only) ----------
+// Visits per New York calendar day for the last `days` days (oldest first, zero-filled)
+export async function dailySeries(table, days = 14) {
+  if (!readonlyConfigured()) return null;
+  const t = table === "inquiries" ? "inquiries" : "page_views";
+  const n = Math.max(1, Math.min(90, Number(days) || 14));
+  return select(
+    `WITH d AS (SELECT generate_series((now() AT TIME ZONE 'America/New_York')::date - ($1::int - 1), (now() AT TIME ZONE 'America/New_York')::date, interval '1 day')::date AS day)
+     SELECT to_char(d.day, 'YYYY-MM-DD') AS day, count(x.created_at)::int AS count
+     FROM d LEFT JOIN ${t} x ON (x.created_at AT TIME ZONE 'America/New_York')::date = d.day
+     GROUP BY d.day ORDER BY d.day`,
+    [n],
+  );
+}
+
+export async function trafficBreakdown(days = 30) {
+  if (!readonlyConfigured()) return null;
+  const n = Math.max(1, Math.min(90, Number(days) || 30));
+  const [sources, pages, devices] = await Promise.all([
+    select(`SELECT source AS label, count(*)::int AS count FROM page_views WHERE created_at >= now() - ($1::int * interval '1 day') GROUP BY source ORDER BY count DESC`, [n]),
+    select(`SELECT path AS label, count(*)::int AS count FROM page_views WHERE created_at >= now() - ($1::int * interval '1 day') GROUP BY path ORDER BY count DESC LIMIT 5`, [n]),
+    select(`SELECT device AS label, count(*)::int AS count FROM page_views WHERE created_at >= now() - ($1::int * interval '1 day') GROUP BY device ORDER BY count DESC`, [n]),
+  ]);
+  return { sources, pages, devices };
+}
