@@ -1,6 +1,7 @@
-// Jarvis command center. Talks to /api/jarvis/* (login required).
+// Jarvis + the RSM dashboard on one private page. Talks to /api/jarvis/* (login required).
+// The orb is the main screen; dashboard panels pop up beside it when Jarvis answers.
 import { AGENTS, DEFAULT_AGENT } from "/jarvis/agents.js";
-import { renderCard, sparkPaths } from "/jarvis/cards-ui.js";
+import { renderCard } from "/jarvis/cards-ui.js";
 
 const $ = (id) => document.getElementById(id);
 const body = document.body;
@@ -10,14 +11,17 @@ let state = "idle"; // idle | listening | thinking | speaking
 let speaker = DEFAULT_AGENT; // who is talking right now (tints the orb, picks the voice)
 let direct = null; // "scout" | "strategist" while talking to a specialist directly
 const history = []; // conversation memory for this session: [{ role, text }]
-const cards = new Map(); // id -> { card, node, getDraft }
+const cards = new Map(); // answer panels beside the orb: id -> { card, node, getDraft }
+const mobile = matchMedia("(max-width: 820px)");
+const MAX_PANELS = 4; // two on each side of the orb
 
-// ---------------- state, speaker, caption ----------------
-const STATUS = { idle: "Tap the mic or press space", listening: "Listening…", thinking: "Thinking…", speaking: "" };
+// ---------------- state, speaker, transcript ----------------
 function setState(s) {
   state = s;
   body.dataset.state = s;
-  if (s !== "speaking" && STATUS[s]) caption(null, STATUS[s], s === "listening");
+  $("mic-label").textContent = s === "listening" ? "Listening" : s === "speaking" ? "Stop" : "Talk";
+  if (s === "listening") caption("You", "Listening…", true);
+  if (s === "thinking") caption(AGENTS[direct || DEFAULT_AGENT].name, "Thinking…", true);
 }
 function setSpeaker(id) {
   if (!AGENTS[id]) id = DEFAULT_AGENT;
@@ -28,18 +32,15 @@ function setSpeaker(id) {
   $("speaker").textContent = AGENTS[id].name;
   $("typed").placeholder = `Type to ${AGENTS[direct || DEFAULT_AGENT].name}…`;
 }
+// Two lines under the orb: what you said, and Jarvis's reply (who = "You", an agent name, or null for a notice)
 function caption(who, text, interim = false) {
-  const c = $("caption");
-  c.replaceChildren();
-  c.classList.toggle("interim", interim);
-  if (who) {
-    const w = document.createElement("span");
-    w.className = "who";
-    w.textContent = who;
-    c.append(w);
-  }
-  c.append(document.createTextNode(text));
-  c.title = text;
+  const mine = who === "You";
+  const line = $(mine ? "said" : "reply");
+  $(mine ? "said-text" : "reply-text").textContent = text;
+  if (!mine) $("reply-who").textContent = who || "Jarvis";
+  line.classList.toggle("interim", interim);
+  line.title = text;
+  line.hidden = false;
 }
 
 // ---------------- API ----------------
@@ -68,63 +69,12 @@ async function loadHud() {
   try {
     const h = await (await api("/api/jarvis/hud")).json();
     if (h.user) $("who").textContent = h.user;
-    $("t-visitors").textContent = h.visitors.week ?? "—";
-    const ch = h.visitors.change;
-    const chEl = $("t-visitors-change");
-    chEl.textContent = h.visitors.week == null ? "not connected" : ch == null ? "" : `${ch >= 0 ? "▲" : "▼"} ${Math.abs(ch)}%`;
-    chEl.className = ch == null ? "" : ch >= 0 ? "up" : "down";
-    sparkPaths($("s-visitors"), h.visitors.series);
-    $("t-inquiries").textContent = h.inquiries.week ?? "—";
-    sparkPaths($("s-inquiries"), h.inquiries.series);
-    $("t-athletes").textContent = h.signedAthletes ? h.signedAthletes.count : "—";
-    sampleBadge($("t-athletes-sample"), h.signedAthletes?.sample);
-    $("t-deals").textContent = h.openDeals ? h.openDeals.count : "—";
-    sampleBadge($("t-deals-sample"), h.openDeals?.sample);
-    const stages = $("t-deal-stages");
-    stages.replaceChildren();
-    const max = Math.max(1, ...Object.values(h.openDeals?.byStage || {}));
-    for (const [stage, n] of Object.entries(h.openDeals?.byStage || {})) {
-      const row = document.createElement("span");
-      const bar = document.createElement("i");
-      bar.style.width = `${(n / max) * 100}%`;
-      row.append(document.createTextNode(stage), Object.assign(document.createElement("b"), { textContent: n }), bar);
-      stages.append(row);
-    }
-    $("t-tasks").textContent = h.tasksToday ? h.tasksToday.count : "—";
-    $("t-approvals").textContent = h.approvalsPending ? `${h.approvalsPending} awaiting approval` : "";
-    const list = $("t-task-list");
-    list.replaceChildren();
-    for (const t of h.tasksToday?.items || []) {
-      const s = document.createElement("span");
-      s.textContent = `${t.overdue ? "! " : "· "}${t.title} (${t.owner})`;
-      if (t.overdue) s.className = "late";
-      list.append(s);
-    }
-    const ig = h.instagram;
-    $("t-ig").textContent = ig?.connected && ig.followers != null ? ig.followers.toLocaleString("en-US") : "—";
-    const igCh = $("t-ig-change");
-    igCh.textContent = !ig?.connected ? (ig?.reason === "expired" ? "connection expired" : "not connected") : ig.gainedWeek == null ? "tracking daily" : `${ig.gainedWeek >= 0 ? "▲" : "▼"} ${Math.abs(ig.gainedWeek)} this week`;
-    igCh.className = ig?.connected && ig.gainedWeek != null ? (ig.gainedWeek >= 0 ? "up" : "down") : "";
-    sparkPaths($("s-ig"), ig?.series || [], { fromMin: true });
     const ok = h.db.site && h.db.jarvis;
     setDot(ok ? "ok" : "warn", ok ? "All systems online" : "Some data isn't connected yet");
   } catch (e) {
     if (e.message !== "logged out") setDot("down", "Can't reach Jarvis");
   }
 }
-function sampleBadge(node, on) {
-  node.textContent = on ? "sample" : "";
-  node.className = on ? "jv-sample" : "";
-}
-document.querySelectorAll("button.jv-tile[data-card]").forEach((t) =>
-  t.addEventListener("click", async () => {
-    const { card: type, ...args } = t.dataset;
-    try {
-      const r = await post("/api/jarvis/act", { action: "card", type, ...args });
-      if (r.ok) addCards([(await r.json()).card]);
-    } catch {}
-  }),
-);
 
 // ---------------- daily briefing ----------------
 let briefing = null;
@@ -132,11 +82,11 @@ async function loadBriefing() {
   try {
     const b = await (await api("/api/jarvis/briefing")).json();
     if (!b.available) {
-      $("brief-status").textContent = b.reason === "weekend" ? "No briefing on weekends." : "Not available yet.";
+      $("play-brief").title = b.reason === "weekend" ? "No briefing on weekends" : "Briefing not available yet";
       return;
     }
     briefing = b;
-    $("brief-status").textContent = `Ready for ${new Date(b.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}.`;
+    $("play-brief").title = `Briefing for ${new Date(b.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}`;
     $("play-brief").disabled = false;
     const hour = new Date().getHours();
     const seenKey = `jarvis-greeted-${b.date}`;
@@ -147,13 +97,14 @@ async function loadBriefing() {
       $("greet").hidden = false;
     }
   } catch {
-    $("brief-status").textContent = "Couldn't load the briefing.";
+    $("play-brief").title = "Couldn't load the briefing";
   }
 }
 function playBriefing() {
   if (!briefing) return;
   $("greet").hidden = true;
   unlockAudio();
+  setView("focus");
   addCards([{ id: `briefing-${briefing.date}`, type: "briefing", title: "Today's briefing", text: briefing.text, facts: briefing.facts, sample: false }]);
   history.push({ role: "assistant", text: briefing.text });
   speak(briefing.text, DEFAULT_AGENT);
@@ -171,36 +122,110 @@ const cardCtx = {
   queueDraft: async (id) => { try { const r = await post("/api/jarvis/act", { action: "queue", draft_id: id }); loadHud(); return r.ok; } catch { return false; } },
   decide: async (id, decision) => { try { const r = await post("/api/jarvis/act", { action: "decide", id, decision }); loadHud(); return r.ok ? (await r.json()).approval : null; } catch { return null; } },
 };
-function addCards(list) {
-  for (const c of list || []) {
-    // one card per kind (or per draft): a new one replaces the old
-    for (const [id, existing] of cards) {
-      const same = existing.card.type === c.type && (c.type !== "email" || existing.card.draft?.id === c.draft?.id);
-      if (same) closeCard(id, { quiet: true });
-    }
+// New answer panels replace the old ones. A panel of the same kind is swapped in place (no jump).
+function addCards(list, { keep = false } = {}) {
+  list = (list || []).filter(Boolean);
+  if (!list.length) return;
+  const sameKind = (a, b) => a.type === b.type && (a.type !== "email" || a.draft?.id === b.draft?.id);
+  const fresh = [];
+  for (const c of list) {
     const r = renderCard(c, cardCtx);
-    cards.set(c.id, { card: c, node: r.node, getDraft: r.getDraft });
-    $("cards").prepend(r.node);
+    const old = [...cards.entries()].find(([, e]) => sameKind(e.card, c));
+    if (old) {
+      r.node.style.animation = "none";
+      old[1].node.replaceWith(r.node);
+      cards.delete(old[0]);
+    }
+    cards.set(c.id, { card: c, node: r.node, getDraft: r.getDraft, placed: Boolean(old) });
+    fresh.push(c.id);
   }
+  if (!keep) for (const id of [...cards.keys()]) if (!fresh.includes(id)) closeCard(id, { quiet: true });
+  // keep at most four panels: the oldest go first
+  const ids = [...cards.keys()];
+  for (const id of ids.slice(0, Math.max(0, ids.length - MAX_PANELS))) closeCard(id, { quiet: true });
   layout();
 }
 function closeCard(id, { quiet = false } = {}) {
   const c = cards.get(id);
   if (!c) return;
-  c.node.remove();
   cards.delete(id);
+  const n = c.node;
+  if (reduced || !n.isConnected) n.remove();
+  else { n.classList.add("leaving"); setTimeout(() => n.remove(), 280); }
   if (!quiet) layout();
 }
 function clearCards() {
   for (const id of [...cards.keys()]) closeCard(id, { quiet: true });
   layout();
 }
+// Panels sit beside the orb: first on the right, then the left, alternating. On a phone they stack under it.
 function layout() {
-  const has = cards.size > 0;
-  $("stage").classList.toggle("has-cards", has);
-  $("clear").hidden = !has;
+  const live = [...cards.values()];
+  live.forEach((c, i) => {
+    const side = mobile.matches || i % 2 === 0 ? $("panels-right") : $("panels-left");
+    if (c.node.parentElement !== side) side.append(c.node);
+    else if (c.node.nextElementSibling && !c.node.nextElementSibling.classList.contains("leaving")) side.append(c.node);
+  });
+  if (mobile.matches) { const first = live[live.length - 1]; if (first) $("panels-right").scrollTop = 0; }
+  $("stage").classList.toggle("has-panels", live.length > 0);
 }
-$("clear").addEventListener("click", clearCards);
+mobile.addEventListener?.("change", layout);
+
+// ---------------- full dashboard ----------------
+const FULL = [
+  ["money", { period: "month" }], ["traffic", { period: "week" }], ["email", {}], ["leads", {}],
+  ["deals", {}], ["tasks", { scope: "open" }], ["instagram_followers", { period: "month" }], ["approvals", {}],
+];
+let view = "focus";
+async function setView(v) {
+  if (v === view) return;
+  view = v;
+  body.dataset.view = v;
+  const btn = $("view-toggle");
+  btn.textContent = v === "full" ? "Back to Jarvis" : "Show full dashboard";
+  btn.setAttribute("aria-pressed", String(v === "full"));
+  const grid = $("panels-full");
+  grid.hidden = v !== "full";
+  if (v !== "full") { grid.replaceChildren(); return; }
+  grid.replaceChildren(Object.assign(document.createElement("p"), { className: "loading", textContent: "Loading the dashboard…" }));
+  const results = await Promise.all(FULL.map(async ([type, args]) => {
+    try { const r = await post("/api/jarvis/act", { action: "card", type, ...args }); return r.ok ? (await r.json()).card : null; } catch { return null; }
+  }));
+  if (view !== "full") return;
+  grid.replaceChildren();
+  results.forEach((c) => {
+    if (!c) return;
+    const r = renderCard(c, { ...cardCtx, close: () => r.node.remove() });
+    grid.append(r.node);
+  });
+  if (!grid.children.length) grid.append(Object.assign(document.createElement("p"), { className: "loading", textContent: "Couldn't load the dashboard. Try again in a moment." }));
+}
+$("view-toggle").addEventListener("click", () => setView(view === "full" ? "focus" : "full"));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && view === "full") setView("focus"); });
+
+// The panel that matches a question pops up right away, while Jarvis works on the answer.
+// (Display only: Jarvis's own answer and cards still come from the same brain and data.)
+function panelFor(text) {
+  const t = text.toLowerCase();
+  if (/\b(draft|write|compose|send|reply to|add|create|move|change|update|delete|remove|mark|remember|forget)\b/.test(t)) return null;
+  const period = /\byear\b/.test(t) ? "year" : /\bquarter\b/.test(t) ? "quarter" : /\bweek\b|\btoday\b|\byesterday\b/.test(t) ? "week" : /\bmonth\b/.test(t) ? "month" : null;
+  if (/\b(money|revenue|made|make|earn(ed|ing)?|income|profit|sales|paid)\b/.test(t)) return ["money", { period: period || "month" }];
+  if (/\bfollowers?\b/.test(t)) return ["instagram_followers", { period: period || "month" }];
+  if (/\b(visit(s|ed|ors?)?|traffic|page ?views|people (came|went|looked)|on the (web)?site|website)\b/.test(t)) return ["traffic", { period: period || "week" }];
+  if (/\b(e-?mails?|inbox|gmail)\b/.test(t)) return ["email", {}];
+  if (/\bleads?\b/.test(t)) return ["leads", {}];
+  if (/\b(deals?|nil|sponsor(s|ships?)?|brand partnerships?)\b/.test(t)) return ["deals", {}];
+  return null;
+}
+async function quickPanel(text) {
+  const p = panelFor(text);
+  if (!p) return;
+  try {
+    const r = await post("/api/jarvis/act", { action: "card", type: p[0], ...p[1] });
+    if (r.ok) addCards([(await r.json()).card]);
+  } catch {}
+}
+
 const openDrafts = () => [...cards.values()].filter((c) => c.getDraft).map((c) => c.getDraft());
 
 // "close that" / "clear the screen" are handled right here, no round trip
@@ -208,8 +233,8 @@ function localCommand(text) {
   const t = text.trim().toLowerCase().replace(/[.!?]+$/, "");
   if (/^(clear( the)? screen|clear (it )?all|close (all|everything|the cards)|clear everything)$/.test(t)) { clearCards(); return "Screen cleared, sir."; }
   if (/^(close|dismiss|hide) (that|it|this|the card)$/.test(t)) {
-    const first = $("cards").firstElementChild;
-    if (first) closeCard(first.dataset.cardId);
+    const newest = [...cards.keys()].pop();
+    if (newest) closeCard(newest);
     return "Done.";
   }
   return null;
@@ -220,9 +245,11 @@ async function ask(text) {
   text = text.trim();
   if (!text) return;
   const local = localCommand(text);
-  if (local) { caption(AGENTS[DEFAULT_AGENT].name, local); setState("idle"); return; }
-  caption("You", text);
+  if (local) { caption("You", text); caption(AGENTS[DEFAULT_AGENT].name, local); setState("idle"); return; }
+  setView("focus");
   setState("thinking");
+  caption("You", text);
+  quickPanel(text);
   try {
     const r = await post("/api/jarvis/assistant", { text, direct, history: history.slice(-20), drafts: openDrafts() });
     const j = await r.json();
@@ -233,7 +260,7 @@ async function ask(text) {
     if ((j.cards || []).some((c) => c.type === "tasks" || c.type === "approvals")) loadHud();
     speak(reply, j.speaker || direct || DEFAULT_AGENT);
   } catch (e) {
-    if (e.message !== "logged out") { caption(null, "Couldn't reach Jarvis. Check the connection and try again."); setState("idle"); }
+    if (e.message !== "logged out") { setState("idle"); caption(null, "Couldn't reach Jarvis. Check the connection and try again."); }
   }
 }
 
@@ -328,7 +355,7 @@ $("typeform").addEventListener("submit", (e) => {
   $("typed").value = "";
   ask(t);
 });
-$("mic").addEventListener("click", listen);
+$("mic").addEventListener("click", () => (state === "speaking" ? stopSpeaking() : listen()));
 document.addEventListener("keydown", (e) => {
   if (e.code !== "Space" || e.repeat) return;
   const tag = (e.target.tagName || "").toLowerCase();

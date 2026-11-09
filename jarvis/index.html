@@ -8,79 +8,47 @@
   <title>J.A.R.V.I.S · RSM</title>
   <link rel="stylesheet" href="/jarvis/jarvis.css">
 </head>
-<body class="jv" data-state="idle" data-speaker="jarvis">
+<body class="jv" data-state="idle" data-speaker="jarvis" data-view="focus">
   <header class="jv-top">
     <div class="jv-brand">J.A.R.V.I.S <span>— RSM</span></div>
     <div class="jv-clock" aria-live="off"><span id="clock-time">--:--</span><span id="clock-date"></span></div>
     <div class="jv-user">
       <span class="jv-dot" id="status-dot" data-status="connecting" title="Connecting"></span>
       <span id="who"></span>
-      <button type="button" id="logout">Log out</button>
+      <button type="button" class="jv-pill" id="play-brief" disabled title="Today's briefing">▶ Briefing</button>
+      <button type="button" class="jv-pill" id="view-toggle" aria-pressed="false">Show full dashboard</button>
+      <button type="button" class="jv-pill" id="logout">Log out</button>
     </div>
   </header>
 
-  <aside class="jv-rail jv-left" aria-label="Live stats">
-    <button type="button" class="jv-tile" data-card="traffic" data-period="week">
-      <span class="jv-tile-label">Visitors · this week</span>
-      <span class="jv-tile-row"><b id="t-visitors">—</b><em id="t-visitors-change"></em></span>
-      <svg class="jv-spark" id="s-visitors" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"></svg>
-    </button>
-    <button type="button" class="jv-tile" data-card="traffic" data-period="month">
-      <span class="jv-tile-label">New inquiries · 7 days</span>
-      <span class="jv-tile-row"><b id="t-inquiries">—</b><em>no contact form yet</em></span>
-      <svg class="jv-spark" id="s-inquiries" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"></svg>
-    </button>
-    <button type="button" class="jv-tile" data-card="instagram_followers" data-period="month">
-      <span class="jv-tile-label">Instagram followers</span>
-      <span class="jv-tile-row"><b id="t-ig">—</b><em id="t-ig-change"></em></span>
-      <svg class="jv-spark" id="s-ig" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"></svg>
-    </button>
-    <button type="button" class="jv-tile" data-card="table" data-entity="athletes">
-      <span class="jv-tile-label">Signed athletes</span>
-      <span class="jv-tile-row"><b id="t-athletes">—</b><em id="t-athletes-sample"></em></span>
-    </button>
-  </aside>
-
   <main class="jv-stage" id="stage">
-    <div class="jv-core" id="core">
-      <svg class="jv-rings" viewBox="0 0 400 400" aria-hidden="true">
-        <g id="ring-a"><circle cx="200" cy="200" r="192" class="r-ticks"/><circle cx="200" cy="200" r="196" class="r-faint"/></g>
-        <g id="ring-b"><circle cx="200" cy="200" r="176" class="r-arcs"/><circle cx="200" cy="200" r="168" class="r-ticks-fine"/></g>
-        <g id="ring-c"><circle cx="200" cy="200" r="156" class="r-arcs-2"/><path d="M200 34 l5 9 h-10z" class="r-mark"/><path d="M200 366 l5 -9 h-10z" class="r-mark"/></g>
-      </svg>
-      <canvas id="orb" aria-hidden="true"></canvas>
-      <div class="jv-speaker" id="speaker">Jarvis</div>
+    <section class="jv-side jv-left" id="panels-left" aria-label="Answers"></section>
+    <div class="jv-center">
+      <div class="jv-core" id="core">
+        <svg class="jv-rings" viewBox="0 0 400 400" aria-hidden="true">
+          <g id="ring-a"><circle cx="200" cy="200" r="192" class="r-ticks"/><circle cx="200" cy="200" r="196" class="r-faint"/></g>
+          <g id="ring-b"><circle cx="200" cy="200" r="176" class="r-arcs"/><circle cx="200" cy="200" r="168" class="r-ticks-fine"/></g>
+          <g id="ring-c"><circle cx="200" cy="200" r="156" class="r-arcs-2"/><path d="M200 34 l5 9 h-10z" class="r-mark"/><path d="M200 366 l5 -9 h-10z" class="r-mark"/></g>
+        </svg>
+        <canvas id="orb" aria-hidden="true"></canvas>
+        <div class="jv-speaker" id="speaker">Jarvis</div>
+      </div>
     </div>
-    <section class="jv-cards" id="cards" aria-live="polite" aria-label="Answers"></section>
-    <button type="button" class="jv-clear" id="clear" hidden>Clear screen ✕</button>
+    <section class="jv-side jv-right" id="panels-right" aria-label="Answers"></section>
+    <section class="jv-full" id="panels-full" aria-label="Full dashboard" hidden></section>
   </main>
 
-  <aside class="jv-rail jv-right" aria-label="Today">
-    <button type="button" class="jv-tile" data-card="deals">
-      <span class="jv-tile-label">Open deals</span>
-      <span class="jv-tile-row"><b id="t-deals">—</b><em id="t-deals-sample"></em></span>
-      <span class="jv-stages" id="t-deal-stages"></span>
-    </button>
-    <button type="button" class="jv-tile" data-card="tasks" data-scope="today">
-      <span class="jv-tile-label">Today's tasks</span>
-      <span class="jv-tile-row"><b id="t-tasks">—</b><em id="t-approvals"></em></span>
-      <span class="jv-mini-list" id="t-task-list"></span>
-    </button>
-    <div class="jv-tile jv-brief" id="brief-tile">
-      <span class="jv-tile-label">Daily briefing</span>
-      <span class="jv-brief-text" id="brief-status">Checking…</span>
-      <button type="button" class="jv-btn" id="play-brief" disabled>▶ Play briefing</button>
-    </div>
-  </aside>
-
   <footer class="jv-bottom">
-    <div class="jv-caption" id="caption" aria-live="polite">Tap the mic or press space</div>
+    <div class="jv-transcript" aria-live="polite">
+      <p class="jv-line" id="said"><span class="who">You</span><span class="txt" id="said-text">Tap the mic or press space, then ask me anything.</span></p>
+      <p class="jv-line reply" id="reply" hidden><span class="who" id="reply-who">Jarvis</span><span class="txt" id="reply-text"></span></p>
+    </div>
     <div class="jv-controls">
       <form id="typeform" class="jv-typeform" hidden>
         <input id="typed" type="text" placeholder="Type to Jarvis…" autocomplete="off" aria-label="Message to Jarvis">
         <button type="submit">Send</button>
       </form>
-      <button type="button" id="mic" class="jv-mic" aria-label="Talk to Jarvis"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+      <button type="button" id="mic" class="jv-mic" aria-label="Talk to Jarvis"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span class="jv-mic-label" id="mic-label">Talk</span></button>
       <button type="button" id="typetoggle" class="jv-link">Type instead</button>
     </div>
   </footer>
