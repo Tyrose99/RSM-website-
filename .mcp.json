@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "adobe-express-developer": {
+      "command": "npx",
+      "args": ["@adobe/express-developer-mcp@latest", "--yes"]
+    }
+  }
+}
